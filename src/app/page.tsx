@@ -1,41 +1,49 @@
 import Link from "next/link";
 import Image from "next/image";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import FAQ from "@/components/FAQ";
+import Reveal from "@/components/Reveal";
 
 const services = [
   {
-    title: "Back Pain",
-    description: "Relieve pain, improve mobility and strengthen your back for lasting results.",
+    title: "Sports Physiotherapy",
+    description: "Performance, recovery and injury prevention for active lives.",
     icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m0-16c-2 2-4 4-4 8s2 6 4 8m0-16c2 2 4 4 4 8s-2 6-4 8" />
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="5" r="2" />
+        <path d="M12 7v4l-3 6M12 11l3 6M9 13h6M8 21l2-4M16 21l-2-4" />
       </svg>
     ),
   },
   {
-    title: "Sports Injuries",
-    description: "Return to sport safely with expert assessment and tailored rehabilitation.",
+    title: "Back & Neck Pain",
+    description: "Targeted treatment for lasting relief and better posture.",
     icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3c-1 2-2 3.5-2 6s1 4 2 6c1-2 2-3.5 2-6s-1-4-2-6z" />
+        <path d="M10 9h4M10 12h4M11 15h2" />
+        <path d="M12 15v5" />
       </svg>
     ),
   },
   {
-    title: "Post-Surgical Rehab",
-    description: "Optimise recovery, restore function and regain confidence after surgery.",
+    title: "Post-Surgery Rehab",
+    description: "Personalised rehab to restore strength, mobility and confidence.",
     icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 14c0-2 1.5-4 4-5.5C14.5 10 16 12 16 14a4 4 0 01-8 0z" />
+        <path d="M12 8.5V6M10 7h4" />
+        <path d="M7 18h10M9 21h6" />
       </svg>
     ),
   },
   {
-    title: "Neck & Shoulder",
-    description: "Ease tension, improve posture and restore natural movement patterns.",
+    title: "Movement & Wellness",
+    description: "Improve mobility, prevent injury and move with ease every day.",
     icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3c-2 3-5 5-5 9a5 5 0 0010 0c0-4-3-6-5-9z" />
+        <path d="M9 13c.5 1 1.5 2 3 2s2.5-1 3-2" />
       </svg>
     ),
   },
@@ -258,6 +266,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+
+      <FAQ />
 
       {/* CTA Banner */}
       <section className="relative py-20 md:py-24 overflow-hidden">

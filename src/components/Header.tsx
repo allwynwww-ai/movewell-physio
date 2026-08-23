@@ -20,7 +20,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.25rem] md:h-[4.75rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" scroll={true} className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
               <svg
                 viewBox="0 0 24 24"
@@ -49,6 +49,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                scroll={true}
                 className="px-3.5 py-2 text-[13px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-secondary)] rounded-lg hover:bg-[var(--color-bg)] transition-all"
               >
                 {link.label}
@@ -102,6 +103,7 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  scroll={true}
                   className="px-3 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-light-teal)] rounded-xl transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >

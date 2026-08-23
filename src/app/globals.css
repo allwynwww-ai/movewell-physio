@@ -163,3 +163,23 @@ html {
 .bg-hero-glow {
   background: var(--hero-glow);
 }
+
+
+/* Soft entrance animations */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Space for mobile sticky bar */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 4.5rem;
+  }
+}

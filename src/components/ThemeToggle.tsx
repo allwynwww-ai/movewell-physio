@@ -35,7 +35,7 @@ export default function ThemeToggle() {
     return (
       <button
         type="button"
-        className="w-9 h-9 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        className="w-9 h-9 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer"
         aria-label="Toggle theme"
       />
     );
@@ -46,7 +46,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-      className="w-9 h-9 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 transition-all flex items-center justify-center"
+      className="w-9 h-9 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 transition-all flex items-center justify-center cursor-pointer"
     >
       {theme === "light" ? (
         // Moon icon → switch to dark
