@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CLINIC_EMAIL, CLINIC_PHONE_DISPLAY, CLINIC_PHONE_TEL, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -67,8 +68,13 @@ export default function Footer() {
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40 mb-4">Contact</h3>
             <ul className="space-y-3 text-sm text-white/60">
               <li>Near Jupiter Hospital<br />Eastern Express Hwy, Thane 400601</li>
-              <li><a href="tel:+912212345678" className="hover:text-white transition-colors">+91 22 1234 5678</a></li>
-              <li><a href="mailto:hello@movewell.physio" className="hover:text-white transition-colors">hello@movewell.physio</a></li>
+              <li>
+                <a href={whatsappLink(WHATSAPP_MESSAGES.ask)} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  WhatsApp us
+                </a>
+              </li>
+              <li><a href={`tel:${CLINIC_PHONE_TEL}`} className="hover:text-white transition-colors">{CLINIC_PHONE_DISPLAY}</a></li>
+              <li><a href={`mailto:${CLINIC_EMAIL}`} className="hover:text-white transition-colors">{CLINIC_EMAIL}</a></li>
             </ul>
           </div>
         </div>

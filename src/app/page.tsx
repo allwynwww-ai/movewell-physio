@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 import Image from "next/image";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import FAQ from "@/components/FAQ";
@@ -74,6 +75,14 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-wrap gap-3">
+                <a
+                  href={whatsappLink(WHATSAPP_MESSAGES.book)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="premium-btn px-7 py-3.5 text-[15px] bg-[#25D366] hover:bg-[#20BD5A] text-white"
+                >
+                  WhatsApp us
+                </a>
                 <Link
                   href="/book"
                   className="premium-btn premium-btn-primary px-7 py-3.5 text-[15px]"
@@ -272,24 +281,31 @@ export default function HomePage() {
 
       {/* CTA Banner */}
       <section className="relative py-20 md:py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-[var(--color-secondary)]" />
+        <div className="absolute inset-0 bg-[var(--color-footer-bg)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,184,166,0.15)_0%,_transparent_50%)]" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
             Ready to move better?
           </h2>
           <p className="text-white/70 text-lg mb-9 max-w-xl mx-auto leading-relaxed">
-            Book your appointment online and take the first step toward lasting relief and better movement.
+            Message us on WhatsApp for the fastest reply, or book online if you prefer a form.
           </p>
-          <Link
-            href="/book"
-            className="premium-btn premium-btn-primary px-8 py-4 text-base"
-          >
-            Book Your Appointment
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={whatsappLink(WHATSAPP_MESSAGES.book)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="premium-btn px-8 py-4 text-base bg-[#25D366] hover:bg-[#20BD5A] text-white"
+            >
+              WhatsApp us
+            </a>
+            <Link
+              href="/book"
+              className="premium-btn premium-btn-primary px-8 py-4 text-base"
+            >
+              Book online
+            </Link>
+          </div>
         </div>
       </section>
     </>

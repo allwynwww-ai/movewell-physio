@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 const faqs = [
   {
@@ -123,14 +124,24 @@ export default function FAQ() {
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-[var(--color-light-teal)] border border-[var(--color-primary)]/10">
           <p className="text-sm font-medium text-[var(--color-secondary)] text-center sm:text-left">
-            Still have questions? We&apos;re happy to help.
+            Still have questions? WhatsApp is the fastest way to reach us.
           </p>
-          <Link
-            href="/contact"
-            className="premium-btn premium-btn-secondary px-5 py-2.5 text-sm"
-          >
-            Contact us
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={whatsappLink(WHATSAPP_MESSAGES.ask)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="premium-btn px-5 py-2.5 text-sm bg-[#25D366] hover:bg-[#20BD5A] text-white"
+            >
+              WhatsApp
+            </a>
+            <Link
+              href="/contact"
+              className="premium-btn premium-btn-secondary px-5 py-2.5 text-sm"
+            >
+              Contact us
+            </Link>
+          </div>
         </div>
       </div>
     </section>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { CLINIC_EMAIL, CLINIC_PHONE_DISPLAY, CLINIC_PHONE_TEL, whatsappLink } from "@/lib/site";
+import { CLINIC_EMAIL, CLINIC_PHONE_DISPLAY, CLINIC_PHONE_TEL, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -112,11 +112,11 @@ export default function BookPage() {
             Thank you for your booking request. We&apos;ll respond within 1 business day to confirm your appointment.
           </p>
           <p className="text-sm text-[var(--color-text-muted)] mb-8">
-            Need a faster reply? Reach us on WhatsApp or phone.
+            Need a faster reply? WhatsApp is the quickest way to confirm.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href={whatsappLink()}
+              href={whatsappLink(WHATSAPP_MESSAGES.followup)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold text-sm transition-colors"
@@ -147,8 +147,16 @@ export default function BookPage() {
             Book Your Appointment
           </h1>
           <p className="text-lg text-[var(--color-text-muted)] max-w-2xl leading-relaxed">
-            Take the first step towards better movement and less pain. We&apos;re here to help you feel your best.
+            Prefer a quicker reply? Message us on WhatsApp, or fill the form below.
           </p>
+          <a
+            href={whatsappLink(WHATSAPP_MESSAGES.book)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-semibold transition-colors"
+          >
+            Book on WhatsApp
+          </a>
         </div>
       </section>
 

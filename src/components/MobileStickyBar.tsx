@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CLINIC_PHONE_TEL, whatsappLink } from "@/lib/site";
+import { CLINIC_PHONE_TEL, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 export default function MobileStickyBar() {
   return (
@@ -17,7 +17,7 @@ export default function MobileStickyBar() {
           <span className="text-[11px] font-semibold">Call</span>
         </a>
         <a
-          href={whatsappLink()}
+          href={whatsappLink(WHATSAPP_MESSAGES.book)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-white bg-[#25D366] hover:bg-[#20BD5A] transition-colors"

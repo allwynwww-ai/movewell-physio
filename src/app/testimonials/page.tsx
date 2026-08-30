@@ -68,7 +68,7 @@ export default function TestimonialsPage() {
 
       {/* CTA */}
       <section className="relative py-16 md:py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-[var(--color-secondary)]" />
+        <div className="absolute inset-0 bg-[var(--color-footer-bg)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,184,166,0.12)_0%,_transparent_50%)]" />
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
