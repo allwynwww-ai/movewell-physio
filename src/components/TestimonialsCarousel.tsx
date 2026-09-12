@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const testimonials = [
-  // Section 1
   {
     quote:
       "Emily is amazing! She listened, explained everything clearly, and helped me get back to running pain-free after months of struggling with knee pain. Highly recommend.",
@@ -46,7 +45,6 @@ const testimonials = [
     detail: "Vestibular & Balance",
     initials: "LW",
   },
-  // Section 2
   {
     quote:
       "My frozen shoulder had limited me for almost a year. The progressive treatment plan and careful hands-on work restored movement I thought I’d lost for good.",
@@ -89,7 +87,6 @@ const testimonials = [
     detail: "Plantar Fasciitis",
     initials: "DH",
   },
-  // Section 3
   {
     quote:
       "After a road accident I needed careful rehab for my wrist and shoulder. The progress was tracked clearly and I regained strength faster than expected.",
@@ -134,8 +131,12 @@ const testimonials = [
   },
 ];
 
-const PER_PAGE = 6;
-const TOTAL_PAGES = Math.ceil(testimonials.length / PER_PAGE);
+function getPerView() {
+  if (typeof window === "undefined") return 3;
+  if (window.innerWidth < 768) return 1;
+  if (window.innerWidth < 1024) return 2;
+  return 3;
+}
 
 function Stars() {
   return (
@@ -150,90 +151,156 @@ function Stars() {
 }
 
 export default function TestimonialsCarousel() {
-  const [page, setPage] = useState(0);
+  const [perView, setPerView] = useState(3);
+  const [index, setIndex] = useState(0);
+  const [drag, setDrag] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef<number | null>(null);
+  const dragRef = useRef(0);
 
-  const start = page * PER_PAGE;
-  const visible = testimonials.slice(start, start + PER_PAGE);
+  useEffect(() => {
+    function onResize() {
+      setPerView(getPerView());
+    }
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
-  function goPrev() {
-    setPage((p) => (p === 0 ? TOTAL_PAGES - 1 : p - 1));
+  const maxIndex = Math.max(0, testimonials.length - perView);
+
+  useEffect(() => {
+    setIndex((i) => Math.min(i, maxIndex));
+  }, [maxIndex]);
+
+  const goTo = useCallback(
+    (next: number) => {
+      const wrapped = ((next % (maxIndex + 1)) + (maxIndex + 1)) % (maxIndex + 1);
+      setIndex(wrapped);
+    },
+    [maxIndex]
+  );
+
+  const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
+  const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
+
+  function onPointerDown(clientX: number) {
+    setIsDragging(true);
+    startXRef.current = clientX;
+    dragRef.current = 0;
+    setDrag(0);
   }
 
-  function goNext() {
-    setPage((p) => (p === TOTAL_PAGES - 1 ? 0 : p + 1));
+  function onPointerMove(clientX: number) {
+    if (startXRef.current == null) return;
+    const dx = clientX - startXRef.current;
+    dragRef.current = dx;
+    setDrag(dx);
   }
+
+  function onPointerUp() {
+    if (startXRef.current == null) return;
+    const threshold = 70;
+    if (dragRef.current > threshold) goTo(index - 1);
+    else if (dragRef.current < -threshold) goTo(index + 1);
+    setIsDragging(false);
+    startXRef.current = null;
+    dragRef.current = 0;
+    setDrag(0);
+  }
+
+  const slidePct = 100 / perView;
+  const offsetPct = -(index * slidePct);
 
   return (
-    <div>
-      {/* Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-        {visible.map((t) => (
-          <article
-            key={`${t.name}-${t.detail}`}
-            className="premium-card p-7 flex flex-col"
-          >
-            <Stars />
-            <p className="text-[var(--color-text)] leading-relaxed mb-6 flex-1 text-[15px]">
-              “{t.quote}”
-            </p>
-            <div className="flex items-center gap-3 mt-auto">
-              <div className="w-11 h-11 rounded-full bg-[var(--color-light-teal)] flex items-center justify-center text-[var(--color-primary)] font-bold text-sm">
-                {t.initials}
-              </div>
-              <div>
-                <p className="font-semibold text-[var(--color-secondary)] text-sm tracking-tight">
-                  {t.name}
-                </p>
-                <p className="text-xs text-[var(--color-text-muted)]">{t.detail}</p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {/* Navigation */}
-      <div className="mt-10 flex items-center justify-center gap-4">
+    <div className="relative select-none">
+      <div className="flex items-stretch gap-3 md:gap-4">
         <button
           type="button"
           onClick={goPrev}
           aria-label="Previous testimonials"
-          className="w-11 h-11 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-secondary)] hover:bg-[var(--color-light-teal)] hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)] transition-all flex items-center justify-center shadow-sm"
+          className="shrink-0 self-center w-11 h-11 rounded-full bg-[var(--color-primary)] text-white shadow-md hover:bg-[var(--color-primary-dark)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer z-10"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
-        <div className="flex items-center gap-2">
-          {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setPage(i)}
-              aria-label={`Go to section ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                i === page
-                  ? "w-6 bg-[var(--color-primary)]"
-                  : "w-2 bg-[var(--color-border)] hover:bg-[var(--color-primary)]/40"
-              }`}
-            />
-          ))}
+        <div
+          className="flex-1 min-w-0 overflow-hidden cursor-grab active:cursor-grabbing"
+          onMouseDown={(e) => onPointerDown(e.clientX)}
+          onMouseMove={(e) => onPointerMove(e.clientX)}
+          onMouseUp={onPointerUp}
+          onMouseLeave={onPointerUp}
+          onTouchStart={(e) => onPointerDown(e.changedTouches[0].clientX)}
+          onTouchMove={(e) => onPointerMove(e.changedTouches[0].clientX)}
+          onTouchEnd={onPointerUp}
+        >
+          <div
+            className={isDragging ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}
+            style={{
+              display: "flex",
+              transform: `translateX(calc(${offsetPct}% + ${isDragging ? drag : 0}px))`,
+            }}
+          >
+            {testimonials.map((t) => (
+              <article
+                key={`${t.name}-${t.detail}`}
+                className="px-2.5 box-border"
+                style={{ flex: `0 0 ${slidePct}%`, maxWidth: `${slidePct}%` }}
+              >
+                <div className="premium-card p-6 md:p-7 flex flex-col h-full min-h-[260px] transition-transform duration-500 hover:-translate-y-0.5">
+                  <Stars />
+                  <p className="text-[var(--color-text)] leading-relaxed mb-6 flex-1 text-[15px]">
+                    “{t.quote}”
+                  </p>
+                  <div className="flex items-center gap-3 mt-auto">
+                    <div className="w-11 h-11 rounded-full bg-[var(--color-light-teal)] flex items-center justify-center text-[var(--color-primary)] font-bold text-sm">
+                      {t.initials}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[var(--color-secondary)] text-sm tracking-tight">
+                        {t.name}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{t.detail}</p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
 
         <button
           type="button"
           onClick={goNext}
           aria-label="Next testimonials"
-          className="w-11 h-11 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-secondary)] hover:bg-[var(--color-light-teal)] hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)] transition-all flex items-center justify-center shadow-sm"
+          className="shrink-0 self-center w-11 h-11 rounded-full bg-[var(--color-primary)] text-white shadow-md hover:bg-[var(--color-primary-dark)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer z-10"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
 
-      <p className="text-center text-xs text-[var(--color-text-muted)] mt-4">
-        Section {page + 1} of {TOTAL_PAGES} · {testimonials.length} reviews
+      <div className="mt-8 flex items-center justify-center gap-2">
+        {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => goTo(i)}
+            aria-label={`Go to review ${i + 1}`}
+            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
+              i === index
+                ? "w-7 bg-[var(--color-primary)]"
+                : "w-2 bg-[var(--color-border)] hover:bg-[var(--color-primary)]/40"
+            }`}
+          />
+        ))}
+      </div>
+
+      <p className="text-center text-xs text-[var(--color-text-muted)] mt-3">
+        {index + 1}–{Math.min(index + perView, testimonials.length)} of {testimonials.length} reviews
       </p>
     </div>
   );

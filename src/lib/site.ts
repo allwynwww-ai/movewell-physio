@@ -17,6 +17,6 @@ export const WHATSAPP_MESSAGES = {
 
 export const WHATSAPP_PREFILL = WHATSAPP_MESSAGES.default;
 
-export function whatsappLink(message: string = WHATSAPP_PREFILL): string {
+export function whatsappLink(message = WHATSAPP_PREFILL) {
   return `https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(message)}`;
 }

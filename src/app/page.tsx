@@ -123,7 +123,7 @@ export default function HomePage() {
               <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-[var(--shadow-xl)]">
                 <Image
                   src="/images/hero.jpg"
-                  alt="Physiotherapy treatment session"
+                  alt="Physiotherapist guiding a patient through resistance-band shoulder exercise"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -239,7 +239,7 @@ export default function HomePage() {
               <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-[var(--shadow-xl)] relative">
                 <Image
                   src="/images/therapist.jpg"
-                  alt="Emily Watson - Principal Physiotherapist"
+                  alt="Physiotherapist assisting a patient with balance and core exercise"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 420px"

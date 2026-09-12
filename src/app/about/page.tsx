@@ -33,7 +33,7 @@ export default function AboutPage() {
               <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-xl relative sticky top-28">
                 <Image
                   src="/images/therapist.jpg"
-                  alt="Emily Watson - Principal Physiotherapist at MoveWell"
+                  alt="Physiotherapist assisting a patient with balance and core exercise at MoveWell"
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 400px"
@@ -128,7 +128,7 @@ export default function AboutPage() {
             <div className="aspect-[16/10] rounded-2xl overflow-hidden relative shadow-md">
               <Image
                 src="/images/clinic-1.jpg"
-                alt="Modern physiotherapy clinic treatment room"
+                alt="Clinic session with therapist supporting an older patient using a therapy ball"
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -137,7 +137,7 @@ export default function AboutPage() {
             <div className="aspect-[16/10] rounded-2xl overflow-hidden relative shadow-md">
               <Image
                 src="/images/clinic-2.jpg"
-                alt="Physiotherapy exercise and rehabilitation area"
+                alt="Clinic session with therapist guiding resistance-band rehabilitation"
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
