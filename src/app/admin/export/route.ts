@@ -15,7 +15,8 @@ export async function GET(req: Request) {
   if (!(await isAdmin())) return new NextResponse("Not signed in.", { status: 401 });
   const url = new URL(req.url);
   const scopeParam = url.searchParams.get("scope");
-  const scope: ListScope = scopeParam === "today" || scopeParam === "upcoming" || scopeParam === "past" ? scopeParam : "all";
+  const scope: ListScope =
+    scopeParam === "today" || scopeParam === "upcoming" || scopeParam === "week" || scopeParam === "past" ? scopeParam : "all";
   const rows = await listAppointments(scope, url.searchParams.get("q") ?? "");
 
   const header = ["Reference", "Date (IST)", "Time (IST)", "Service", "Status", "Name", "Phone", "Email", "Note", "Booked at (IST)"];

@@ -75,7 +75,7 @@ function toAppointment(r: Row): Appointment {
 
 export class BookingError extends Error {
   constructor(
-    public code: "slot-taken" | "invalid-slot" | "blocked" | "limit" | "not-found" | "cutoff" | "not-active",
+    public code: "slot-taken" | "invalid-slot" | "blocked" | "limit" | "not-found" | "cutoff" | "not-active" | "not-started",
     message: string,
   ) {
     super(message);
@@ -297,11 +297,18 @@ export async function rescheduleAppointment(
 
 export async function setStatus(id: string, status: Exclude<AppointmentStatus, "cancelled">): Promise<Appointment> {
   const sql = await db();
+  const current = await getAppointment(id);
+  if (!current) throw new BookingError("not-found", "Appointment not found.");
+  // Cancelled bookings are final here (re-book instead) – stops a stale or forged form from reviving them.
+  if (current.status === "cancelled") throw new BookingError("not-active", "This appointment was cancelled and can't be changed.");
+  if ((status === "completed" || status === "no_show") && !hasStarted(current)) {
+    throw new BookingError("not-started", "You can only mark an appointment done or no-show once it has started.");
+  }
   try {
     const [r] = await sql<Row[]>`
-      UPDATE appointments SET status = ${status}, cancelled_at = NULL, cancelled_by = NULL, updated_at = now()
-      WHERE id = ${id} RETURNING *`;
-    if (!r) throw new BookingError("not-found", "Appointment not found.");
+      UPDATE appointments SET status = ${status}, updated_at = now()
+      WHERE id = ${id} AND status <> 'cancelled' RETURNING *`;
+    if (!r) throw new BookingError("not-active", "This appointment was cancelled and can't be changed.");
     return toAppointment(r);
   } catch (err) {
     if (isUniqueViolation(err)) {
@@ -311,29 +318,41 @@ export async function setStatus(id: string, status: Exclude<AppointmentStatus, "
   }
 }
 
-export type ListScope = "today" | "upcoming" | "past" | "all";
+/**
+ * today    – every booking on today's date (IST), any status
+ * upcoming – bookings that haven't started yet (soonest first)
+ * week     – today + next 6 days (IST), not cancelled – matches the Week calendar
+ * past     – bookings that have already started, newest first (incl. earlier today)
+ * all      – everything, newest first
+ */
+export type ListScope = "today" | "upcoming" | "week" | "past" | "all";
 
 export async function listAppointments(scope: ListScope, q = ""): Promise<Appointment[]> {
   const sql = await db();
   const today = todayKey();
   const dayStart = zonedToUtc(today, "00:00");
   const dayEnd = zonedToUtc(addDays(today, 1), "00:00");
+  const weekEnd = zonedToUtc(addDays(today, 7), "00:00");
+  const now = new Date();
   const term = q.trim().slice(0, 80);
+  const like = "%" + term.replace(/[%_\\]/g, "\\$&") + "%";
   const digits = term.replace(/\D/g, "");
   const search = term
-    ? sql`AND (name ILIKE ${"%" + term.replace(/[%_\\]/g, "\\$&") + "%"} OR ref ILIKE ${term}
+    ? sql`AND (name ILIKE ${like} OR ref ILIKE ${like} OR email ILIKE ${like}
           ${digits.length >= 3 ? sql`OR regexp_replace(phone, '\\D', '', 'g') LIKE ${"%" + digits + "%"}` : sql``})`
     : sql``;
 
   let rows: Row[];
   if (scope === "today") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${search} ORDER BY starts_at`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${search} ORDER BY starts_at, (status = 'cancelled'), ref`;
   } else if (scope === "upcoming") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} ${search} ORDER BY starts_at LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${now} ${search} ORDER BY starts_at, (status = 'cancelled'), ref LIMIT 500`;
+  } else if (scope === "week") {
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${weekEnd} AND status <> 'cancelled' ${search} ORDER BY starts_at, (status = 'cancelled'), ref LIMIT 500`;
   } else if (scope === "past") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at < ${dayStart} ${search} ORDER BY starts_at DESC LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at < ${now} ${search} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 500`;
   } else {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE true ${search} ORDER BY starts_at DESC LIMIT 2000`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE true ${search} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 2000`;
   }
   return rows.map(toAppointment);
 }
@@ -412,6 +431,7 @@ export async function listBlockedDays(): Promise<{ day: string; reason: string; 
 
 export async function blockDay(day: string, reason: string) {
   if (!isValidDateKey(day)) throw new BookingError("invalid-slot", "Invalid date.");
+  if (day < todayKey()) throw new BookingError("invalid-slot", "That date is in the past.");
   const sql = await db();
   await sql`
     INSERT INTO blocked_dates (day, reason) VALUES (${day}::date, ${reason})
