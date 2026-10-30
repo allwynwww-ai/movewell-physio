@@ -13,25 +13,34 @@ import {
 } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 
-const status = bookingStatus();
-const live = status === "ready";
-const whatToExpect = live
-  ? [
-      "Pick a free time – your appointment is confirmed instantly.",
-      `You get a confirmation with a calendar invite and a link to reschedule or cancel (up to ${booking.cancellationCutoffHours} hours before).`,
-      ...siteConfig.booking.whatToExpect.slice(1),
-    ]
-  : siteConfig.booking.whatToExpect;
+export const dynamic = "force-dynamic";
 
-export const metadata = pageMetadata({
-  title: "Book an Appointment",
-  description: live
-    ? `Book a physiotherapy appointment at ${siteConfig.brand.name} online. Pick a free time, get instant confirmation, and cancel or reschedule online.`
-    : `Request a physiotherapy appointment at ${siteConfig.brand.name}. Send the online form or message the clinic on WhatsApp, and the clinic will contact you to confirm.`,
-  path: "/book",
-});
+function bookingView() {
+  const status = bookingStatus();
+  const live = status === "ready";
+  const whatToExpect = live
+    ? [
+        "Pick a free time – your appointment is confirmed instantly.",
+        `You get a confirmation with a calendar invite and a link to reschedule or cancel (up to ${booking.cancellationCutoffHours} hours before).`,
+        ...siteConfig.booking.whatToExpect.slice(1),
+      ]
+    : siteConfig.booking.whatToExpect;
+  return { status, live, whatToExpect };
+}
+
+export async function generateMetadata() {
+  const { live } = bookingView();
+  return pageMetadata({
+    title: "Book an Appointment",
+    description: live
+      ? `Book a physiotherapy appointment at ${siteConfig.brand.name} online. Pick a free time, get instant confirmation, and cancel or reschedule online.`
+      : `Request a physiotherapy appointment at ${siteConfig.brand.name}. Send the online form or message the clinic on WhatsApp, and the clinic will contact you to confirm.`,
+    path: "/book",
+  });
+}
 
 export default function BookPage() {
+  const { status, live, whatToExpect } = bookingView();
   return (
     <>
       <section className="bg-[var(--color-surface)] border-b border-[var(--color-border-light)]">

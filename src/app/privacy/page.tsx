@@ -4,6 +4,8 @@ import { addressOneLine, CLINIC_EMAIL, siteConfig } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 import { isOnlineBookingOn } from "@/lib/booking/flags";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = pageMetadata({
   title: "Privacy Policy",
   description: `How ${siteConfig.brand.name} collects, uses, stores and protects your personal data under India's Digital Personal Data Protection Act, 2023.`,
