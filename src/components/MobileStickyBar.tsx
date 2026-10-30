@@ -1,9 +1,13 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { telLink, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 export default function MobileStickyBar() {
+  const pathname = usePathname();
+  // The clinic admin has its own layout; keep patient CTAs out of the way there.
+  if (pathname?.startsWith("/admin")) return null;
   return (
     <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-lg safe-area-pb">
       <div className="grid grid-cols-3 gap-1 px-2 py-2">
