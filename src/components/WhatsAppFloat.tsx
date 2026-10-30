@@ -1,8 +1,12 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 export default function WhatsAppFloat() {
+  const pathname = usePathname();
+  // The clinic admin has its own layout; keep patient CTAs out of the way there.
+  if (pathname?.startsWith("/admin")) return null;
   return (
     <a
       href={whatsappLink(WHATSAPP_MESSAGES.default)}
