@@ -1,54 +1,22 @@
 import Link from "next/link";
-import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 import Image from "next/image";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import FAQ from "@/components/FAQ";
-import Reveal from "@/components/Reveal";
+import Icon from "@/components/Icon";
+import SampleNotice from "@/components/SampleNotice";
+import {
+  hasSampleStats,
+  primaryTherapist,
+  siteConfig,
+  whatsappLink,
+  WHATSAPP_MESSAGES,
+} from "@/lib/site";
+import { faqJsonLd, jsonLdString, pageMetadata } from "@/lib/seo";
 
-const services = [
-  {
-    title: "Sports Physiotherapy",
-    description: "Performance, recovery and injury prevention for active lives.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="5" r="2" />
-        <path d="M12 7v4l-3 6M12 11l3 6M9 13h6M8 21l2-4M16 21l-2-4" />
-      </svg>
-    ),
-  },
-  {
-    title: "Back & Neck Pain",
-    description: "Targeted treatment for lasting relief and better posture.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3c-1 2-2 3.5-2 6s1 4 2 6c1-2 2-3.5 2-6s-1-4-2-6z" />
-        <path d="M10 9h4M10 12h4M11 15h2" />
-        <path d="M12 15v5" />
-      </svg>
-    ),
-  },
-  {
-    title: "Post-Surgery Rehab",
-    description: "Personalised rehab to restore strength, mobility and confidence.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 14c0-2 1.5-4 4-5.5C14.5 10 16 12 16 14a4 4 0 01-8 0z" />
-        <path d="M12 8.5V6M10 7h4" />
-        <path d="M7 18h10M9 21h6" />
-      </svg>
-    ),
-  },
-  {
-    title: "Movement & Wellness",
-    description: "Improve mobility, prevent injury and move with ease every day.",
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3c-2 3-5 5-5 9a5 5 0 0010 0c0-4-3-6-5-9z" />
-        <path d="M9 13c.5 1 1.5 2 3 2s2.5-1 3-2" />
-      </svg>
-    ),
-  },
-];
+export const metadata = pageMetadata({ path: "/" });
+
+const { hero, conditions, stats } = siteConfig;
+const therapist = primaryTherapist;
 
 export default function HomePage() {
   return (
@@ -61,17 +29,17 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-light-teal)] border border-[var(--color-primary)]/10 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" />
                 <span className="text-xs font-semibold text-[var(--color-primary)] tracking-wide">
-                  Physiotherapy · Thane, Maharashtra
+                  {hero.eyebrow}
                 </span>
               </div>
 
-              <h1 className="heading-display text-4xl sm:text-5xl lg:text-[3.5rem] mb-5">
-                Expert care to get you{" "}
-                <span className="text-[var(--color-primary)]">moving pain-free</span>
+              <h1 className="heading-display text-[2.25rem] leading-[1.12] sm:text-5xl lg:text-[3.25rem] xl:text-[3.5rem] mb-5 text-balance break-words">
+                {hero.headingStart}{" "}
+                <span className="text-[var(--color-primary)]">{hero.headingHighlight}</span>
               </h1>
 
               <p className="text-lg text-[var(--color-text-muted)] leading-relaxed max-w-lg mb-8">
-                Personalised, evidence-based physiotherapy. Hands-on treatment and clear guidance so you can return to the life you love.
+                {hero.subheading}
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -100,30 +68,25 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <div className="mt-10 flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex -space-x-1.5">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-7 h-7 rounded-full bg-[var(--color-primary)]/20 border-2 border-white flex items-center justify-center text-[10px] font-bold text-[var(--color-primary)]">
-                        {String.fromCharCode(64 + i)}
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-[var(--color-text-muted)] ml-1">Trusted by 1,000+</span>
-                </div>
-                <div className="flex items-center gap-1 text-amber-500">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
-                  <span className="font-semibold text-[var(--color-secondary)]">4.9</span>
-                  <span className="text-[var(--color-text-muted)]">Google</span>
-                </div>
-              </div>
+              {hero.highlights.length > 0 && (
+                <ul className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                  {hero.highlights.map((item) => (
+                    <li key={item} className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+                      <svg className="w-4 h-4 text-[var(--color-primary)] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            <div className="order-1 lg:order-2 relative">
+            <div className="order-1 lg:order-2 relative mb-6 lg:mb-0">
               <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-[var(--shadow-xl)]">
                 <Image
-                  src="/images/hero.jpg"
-                  alt="Physiotherapist guiding a patient through resistance-band shoulder exercise"
+                  src={hero.image}
+                  alt={hero.imageAlt}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -132,16 +95,16 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
               </div>
 
-              <div className="absolute -bottom-5 left-6 right-6 sm:left-auto sm:right-6 sm:w-56 bg-[var(--color-surface)]/95 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-lg)] border border-white/50">
+              <div className="absolute -bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-60 bg-[var(--color-surface)]/95 backdrop-blur-md rounded-2xl p-4 shadow-[var(--shadow-lg)] border border-white/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-light-teal)] flex items-center justify-center">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-[var(--color-light-teal)] flex items-center justify-center">
                     <svg className="w-5 h-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[var(--color-secondary)]">Same-week availability</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">Book online in minutes</p>
+                    <p className="text-sm font-semibold text-[var(--color-secondary)]">{hero.badgeTitle}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">{hero.badgeText}</p>
                   </div>
                 </div>
               </div>
@@ -153,32 +116,33 @@ export default function HomePage() {
       {/* Trust metrics with animated counters */}
       <section className="border-y border-[var(--color-border-light)] bg-[var(--color-surface)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[var(--color-border-light)]">
-            <div className="py-8 px-4 text-center">
-              <p className="text-2xl md:text-3xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={1000} duration={2200} suffix="+" />
-              </p>
-              <p className="text-xs md:text-sm text-[var(--color-text-muted)] mt-1 font-medium">Patients Treated</p>
-            </div>
-            <div className="py-8 px-4 text-center">
-              <p className="text-2xl md:text-3xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={4.9} duration={2000} decimals={1} />
-              </p>
-              <p className="text-xs md:text-sm text-[var(--color-text-muted)] mt-1 font-medium">Google Rating</p>
-            </div>
-            <div className="py-8 px-4 text-center">
-              <p className="text-2xl md:text-3xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={10} duration={1800} suffix="+" />
-              </p>
-              <p className="text-xs md:text-sm text-[var(--color-text-muted)] mt-1 font-medium">Years Experience</p>
-            </div>
-            <div className="py-8 px-4 text-center">
-              <p className="text-2xl md:text-3xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={98} duration={2000} suffix="%" />
-              </p>
-              <p className="text-xs md:text-sm text-[var(--color-text-muted)] mt-1 font-medium">Would Recommend</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4">
+            {stats.map((stat, i) => (
+              <div
+                key={stat.label}
+                className={`py-8 px-4 text-center border-[var(--color-border-light)] ${
+                  i % 2 === 1 ? "border-l" : ""
+                } ${i > 0 && i % 4 !== 0 ? "md:border-l" : "md:border-l-0"} ${
+                  i >= 2 ? "border-t md:border-t-0" : ""
+                }`}
+              >
+                <p className="text-2xl md:text-3xl font-bold text-[var(--color-secondary)] tracking-tight">
+                  <AnimatedCounter
+                    end={stat.value}
+                    prefix={stat.prefix}
+                    suffix={stat.suffix}
+                    decimals={stat.decimals}
+                  />
+                </p>
+                <p className="text-xs md:text-sm text-[var(--color-text-muted)] mt-1 font-medium">{stat.label}</p>
+              </div>
+            ))}
           </div>
+          {hasSampleStats && (
+            <div className="pb-5 -mt-1 text-center">
+              <SampleNotice kind="stats" />
+            </div>
+          )}
         </div>
       </section>
 
@@ -196,10 +160,10 @@ export default function HomePage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {services.map((service) => (
+            {conditions.map((service) => (
               <div key={service.title} className="premium-card p-6 group">
                 <div className="w-11 h-11 rounded-xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                  {service.icon}
+                  <Icon name={service.icon} />
                 </div>
                 <h3 className="text-base font-semibold text-[var(--color-secondary)] mb-2 tracking-tight">
                   {service.title}
@@ -208,8 +172,9 @@ export default function HomePage() {
                   {service.description}
                 </p>
                 <Link
-                  href="/services"
+                  href={service.serviceId ? `/services#${service.serviceId}` : "/services"}
                   className="inline-flex items-center text-sm font-semibold text-[var(--color-primary)] hover:gap-2 gap-1 transition-all"
+                  aria-label={`Learn more about ${service.title}`}
                 >
                   Learn more
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -238,30 +203,32 @@ export default function HomePage() {
             <div className="relative max-w-md mx-auto lg:mx-0">
               <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-[var(--shadow-xl)] relative">
                 <Image
-                  src="/images/therapist.jpg"
-                  alt="Physiotherapist assisting a patient with balance and core exercise"
+                  src={therapist.photo}
+                  alt={therapist.photoAlt}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 420px"
                 />
               </div>
               <div className="absolute -bottom-4 -right-2 sm:-right-6 bg-[var(--color-surface)] rounded-2xl shadow-[var(--shadow-lg)] px-5 py-4 border border-[var(--color-border-light)]">
-                <p className="font-semibold text-[var(--color-secondary)] text-sm tracking-tight">Emily Watson</p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Principal Physiotherapist · IAP</p>
+                <p className="font-semibold text-[var(--color-secondary)] text-sm tracking-tight">{therapist.name}</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{therapist.shortCredentials}</p>
               </div>
             </div>
 
             <div>
               <p className="section-label mb-3">Your therapist</p>
               <h2 className="heading-display text-3xl md:text-4xl mb-5">
-                Hi, I&apos;m Emily
+                Hi, I&apos;m {therapist.firstName}
               </h2>
-              <p className="text-[var(--color-text-muted)] leading-relaxed mb-4">
-                With over a decade of clinical experience, I help people move better and live without unnecessary pain. My approach is evidence-based, hands-on, and always centred on your goals.
-              </p>
-              <p className="text-[var(--color-text-muted)] leading-relaxed mb-8">
-                Whether you&apos;re recovering from surgery, managing a sports injury, or dealing with persistent back or neck pain, we&apos;ll create a clear plan together.
-              </p>
+              {therapist.bio.slice(0, 2).map((para, i) => (
+                <p
+                  key={i}
+                  className={`text-[var(--color-text-muted)] leading-relaxed ${i === 1 ? "mb-8" : "mb-4"}`}
+                >
+                  {para}
+                </p>
+              ))}
               <Link
                 href="/about"
                 className="premium-btn premium-btn-primary px-6 py-3 text-sm"
@@ -278,6 +245,10 @@ export default function HomePage() {
 
 
       <FAQ />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd()) }}
+      />
 
       {/* CTA Banner */}
       <section className="relative py-20 md:py-24 overflow-hidden">

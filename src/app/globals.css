@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark mode follows the .dark class toggled by ThemeToggle (not only the OS setting) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --color-primary: #0F766E;
   --color-primary-light: #14B8A6;

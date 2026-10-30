@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
-import { CLINIC_PHONE_DISPLAY, CLINIC_PHONE_TEL, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
+import BrandLogo from "@/components/BrandLogo";
+import { CLINIC_PHONE_DISPLAY, siteConfig, telLink, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -17,31 +18,17 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl border-b border-[var(--color-border-light)]" style={{ background: "var(--color-header-bg)" }}>
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-[var(--color-border-light)]" style={{ background: "var(--color-header-bg)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.25rem] md:h-[4.75rem]">
           {/* Logo */}
-          <Link href="/" scroll={true} className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-5 h-5 text-white"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2C8 2 5 6 5 10c0 5 7 12 7 12s7-7 7-12c0-4-3-8-7-8z" />
-                <circle cx="12" cy="10" r="2.5" fill="currentColor" />
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[1.05rem] font-bold text-[var(--color-secondary)] leading-none tracking-tight">
-                MoveWell
-              </span>
-              <span className="text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] font-semibold mt-0.5">
-                Physiotherapy
-              </span>
-            </div>
+          <Link
+            href="/"
+            scroll={true}
+            className="flex items-center group min-w-0 mr-2"
+            aria-label={`${siteConfig.brand.name} – home`}
+          >
+            <BrandLogo />
           </Link>
 
           {/* Desktop Nav */}
@@ -59,10 +46,10 @@ export default function Header() {
           </nav>
 
           {/* CTA + Mobile toggle */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <ThemeToggle />
             <a
-              href={`tel:${CLINIC_PHONE_TEL}`}
+              href={telLink}
               className="hidden xl:flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -89,7 +76,9 @@ export default function Header() {
               type="button"
               className="lg:hidden p-2 rounded-xl text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
             >
               {mobileOpen ? (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -106,7 +95,10 @@ export default function Header() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden pb-5 border-t border-[var(--color-border-light)]">
+          <div
+            id="mobile-menu"
+            className="lg:hidden pb-5 border-t border-[var(--color-border-light)] max-h-[calc(100dvh-4.25rem)] overflow-y-auto overscroll-contain"
+          >
             <nav className="flex flex-col gap-0.5 pt-3">
               {navLinks.map((link) => (
                 <Link

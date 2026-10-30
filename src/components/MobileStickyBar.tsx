@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CLINIC_PHONE_TEL, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
+import { telLink, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
 export default function MobileStickyBar() {
   return (
     <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-lg safe-area-pb">
       <div className="grid grid-cols-3 gap-1 px-2 py-2">
         <a
-          href={`tel:${CLINIC_PHONE_TEL}`}
+          href={telLink}
           className="flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-[var(--color-secondary)] hover:bg-[var(--color-bg)] transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

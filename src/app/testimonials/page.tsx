@@ -1,13 +1,17 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import SampleNotice from "@/components/SampleNotice";
 import TestimonialsCarousel from "@/components/TestimonialsCarousel";
+import { hasSampleStats, hasSampleTestimonials, siteConfig } from "@/lib/site";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Patient Testimonials",
-  description:
-    "Read real patient stories and reviews from people who recovered with MoveWell Physiotherapy in Thane, Maharashtra.",
-};
+  description: `Patient stories and reviews from people treated at ${siteConfig.brand.name}.`,
+  path: "/testimonials",
+});
+
+const summaryStats = siteConfig.stats.slice(0, 3);
 
 export default function TestimonialsPage() {
   return (
@@ -19,8 +23,9 @@ export default function TestimonialsPage() {
             What Our Patients Say
           </h1>
           <p className="text-lg text-[var(--color-text-muted)] max-w-2xl leading-relaxed">
-            Real results from real people. Here&apos;s what patients have shared about their experience at MoveWell.
+            Here&apos;s what patients have shared about their experience at {siteConfig.brand.shortName}.
           </p>
+          {hasSampleTestimonials && <SampleNotice kind="reviews" className="mt-5" />}
         </div>
       </section>
 
@@ -28,34 +33,23 @@ export default function TestimonialsPage() {
       <section className="py-10 bg-[var(--color-bg)] border-b border-[var(--color-border-light)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 text-center">
-            <div>
-              <p className="text-5xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={4.9} duration={2000} decimals={1} />
-              </p>
-              <div className="flex justify-center gap-1 mt-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20">
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
-                ))}
+            {summaryStats.map((stat, i) => (
+              <div key={stat.label} className="contents">
+                {i > 0 && <div className="h-16 w-px bg-[var(--color-border)] hidden md:block" />}
+                <div>
+                  <p className="text-5xl font-bold text-[var(--color-secondary)] tracking-tight">
+                    <AnimatedCounter end={stat.value} prefix={stat.prefix} suffix={stat.suffix} decimals={stat.decimals} />
+                  </p>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1">{stat.label}</p>
+                </div>
               </div>
-              <p className="text-sm text-[var(--color-text-muted)] mt-1">Based on 240+ Google reviews</p>
-            </div>
-            <div className="h-16 w-px bg-slate-300 hidden md:block" />
-            <div>
-              <p className="text-5xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={1000} duration={2200} suffix="+" />
-              </p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-1">Patients helped in Thane</p>
-            </div>
-            <div className="h-16 w-px bg-slate-300 hidden md:block" />
-            <div>
-              <p className="text-5xl font-bold text-[var(--color-secondary)] tracking-tight">
-                <AnimatedCounter end={98} duration={2000} suffix="%" />
-              </p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-1">Would recommend to a friend</p>
-            </div>
+            ))}
           </div>
+          {hasSampleStats && (
+            <div className="mt-6 text-center">
+              <SampleNotice kind="stats" />
+            </div>
+          )}
         </div>
       </section>
 
@@ -75,7 +69,7 @@ export default function TestimonialsPage() {
             Ready to Write Your Own Success Story?
           </h2>
           <p className="text-white/70 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            Join the hundreds of patients who have found lasting relief with personalised physiotherapy care in Thane.
+            Personalised physiotherapy care in {siteConfig.address.city}. Send a request and the clinic will get back to you.
           </p>
           <Link
             href="/book"

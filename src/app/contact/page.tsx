@@ -1,18 +1,23 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import OpeningHours from "@/components/OpeningHours";
 import {
+  addressLines,
   CLINIC_EMAIL,
   CLINIC_PHONE_DISPLAY,
-  CLINIC_PHONE_TEL,
+  IS_DEMO_NUMBER,
+  mailtoLink,
+  siteConfig,
+  telLink,
   whatsappLink,
   WHATSAPP_MESSAGES,
 } from "@/lib/site";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Contact",
-  description:
-    "Get in touch with MoveWell Physiotherapy in Thane, Maharashtra. WhatsApp is the fastest way to reach us.",
-};
+  description: `Get in touch with ${siteConfig.brand.name} in ${siteConfig.address.city}. Address, opening hours, phone, email and WhatsApp.`,
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (
@@ -60,10 +65,13 @@ export default function ContactPage() {
                 </svg>
               </div>
               <h2 className="font-semibold text-[var(--color-secondary)] mb-1">Phone</h2>
-              <a href={`tel:${CLINIC_PHONE_TEL}`} className="text-[var(--color-primary)] font-medium hover:underline">
+              <a href={telLink} className="text-[var(--color-primary)] font-medium hover:underline">
                 {CLINIC_PHONE_DISPLAY}
               </a>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">Mon–Fri 8:00am – 6:00pm</p>
+              {IS_DEMO_NUMBER && (
+                <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] mt-1">Demo number</p>
+              )}
+              <p className="text-sm text-[var(--color-text-muted)] mt-2">During opening hours</p>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-7">
@@ -73,10 +81,10 @@ export default function ContactPage() {
                 </svg>
               </div>
               <h2 className="font-semibold text-[var(--color-secondary)] mb-1">Email</h2>
-              <a href={`mailto:${CLINIC_EMAIL}`} className="text-[var(--color-primary)] font-medium hover:underline break-all">
+              <a href={mailtoLink} className="text-[var(--color-primary)] font-medium hover:underline break-all">
                 {CLINIC_EMAIL}
               </a>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">We reply within 1 business day</p>
+              <p className="text-sm text-[var(--color-text-muted)] mt-2">{siteConfig.contact.emailReplyTime}</p>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-7">
@@ -87,19 +95,21 @@ export default function ContactPage() {
                 </svg>
               </div>
               <h2 className="font-semibold text-[var(--color-secondary)] mb-1">Clinic</h2>
-              <p className="text-[var(--color-text)]">
-                Near Jupiter Hospital<br />
-                Eastern Express Highway, Thane<br />
-                Maharashtra 400601
-              </p>
+              <address className="not-italic text-[var(--color-text)]">
+                {addressLines.map((line) => (
+                  <span key={line} className="block">
+                    {line}
+                  </span>
+                ))}
+              </address>
             </div>
           </div>
 
           <div className="mt-12 grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 aspect-[16/9] lg:aspect-auto lg:min-h-[320px] rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-sm">
               <iframe
-                title="Jupiter Hospital, Thane - Google Maps"
-                src="https://www.google.com/maps?q=Jupiter+Hospital,+Eastern+Express+Highway,+next+to+Viviana+Mall,+Thane,+Maharashtra+400601&z=16&output=embed"
+                title={siteConfig.address.mapTitle}
+                src={siteConfig.address.mapEmbedUrl}
                 width="100%"
                 height="100%"
                 style={{ border: 0, minHeight: "320px" }}
@@ -109,7 +119,9 @@ export default function ContactPage() {
               />
             </div>
 
-            <div className="bg-[var(--color-footer-bg)] rounded-2xl p-8 flex flex-col justify-center text-white">
+            <div id="hours" className="bg-[var(--color-footer-bg)] rounded-2xl p-8 flex flex-col justify-center text-white scroll-mt-28">
+              <h2 className="text-lg font-bold mb-3">Opening hours</h2>
+              <OpeningHours tone="inverse" className="mb-7" />
               <h2 className="text-2xl font-bold mb-3">Ready to start?</h2>
               <p className="text-white/80 mb-6 text-sm leading-relaxed">
                 WhatsApp is the quickest way to ask a question or request a slot. New patients are always welcome.
