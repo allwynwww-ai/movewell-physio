@@ -2,6 +2,7 @@ import Link from "next/link";
 import LegalPage, { LegalSection } from "@/components/LegalPage";
 import { addressOneLine, CLINIC_EMAIL, siteConfig } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
+import { isOnlineBookingOn } from "@/lib/booking/flags";
 
 export const metadata = pageMetadata({
   title: "Privacy Policy",
@@ -12,6 +13,7 @@ export const metadata = pageMetadata({
 export default function PrivacyPage() {
   const { legal, brand } = siteConfig;
   const g = legal.grievanceOfficer;
+  const onlineBooking = isOnlineBookingOn();
 
   return (
     <LegalPage
@@ -32,6 +34,14 @@ export default function PrivacyPage() {
             <strong>Appointment request form:</strong> first and last name, email address, phone number, reason for visit,
             preferred date, any notes you choose to add, and a record that you gave consent (with date and time).
           </li>
+          {onlineBooking && (
+            <li>
+              <strong>Online booking:</strong> when you book a time online we store your name, phone number, email address,
+              the service and time you chose, any note you add, and the date and time you gave consent. We use this to hold
+              your appointment, send you a confirmation and a private link to cancel or reschedule, and keep the
+              clinic&apos;s appointment diary.
+            </li>
+          )}
           <li>
             <strong>Health information you volunteer:</strong> the reason for visit and notes may reveal information about
             your health. Please share only what is needed to arrange your appointment — clinical details can be discussed at
@@ -80,6 +90,17 @@ export default function PrivacyPage() {
             <strong>Form delivery service</strong> (FormSubmit, formsubmit.co) — forwards your form submission to the
             clinic&apos;s email inbox.
           </li>
+          {onlineBooking && (
+            <>
+              <li>
+                <strong>Booking database</strong> (Neon Postgres, via Vercel) — stores online bookings securely. Only the
+                clinic can see them, through a password-protected admin page.
+              </li>
+              <li>
+                <strong>Transactional email</strong> (Resend) — sends your booking confirmation and change notices.
+              </li>
+            </>
+          )}
           <li>
             <strong>Email provider</strong> used by the clinic to receive and reply to your request.
           </li>
@@ -104,6 +125,13 @@ export default function PrivacyPage() {
           consent. If you become a patient, your clinical records are kept for the period required by applicable medical
           record-keeping rules and professional guidelines, and are handled under the clinic&apos;s patient records policy.
         </p>
+        {onlineBooking && (
+          <p>
+            Online bookings follow the same rule: bookings that do not lead to treatment are deleted within{" "}
+            {legal.enquiryRetentionMonths} months of the appointment date. Cancelling a booking does not delete it straight
+            away; ask us (section 8) if you want it erased sooner.
+          </p>
+        )}
       </LegalSection>
 
       <LegalSection id="rights" title="6. Your rights">
