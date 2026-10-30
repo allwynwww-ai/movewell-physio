@@ -3,6 +3,7 @@
 import { useState } from "react";
 import SlotPicker, { useAvailability } from "@/components/booking/SlotPicker";
 import { rescheduleAction } from "@/app/admin/actions";
+import SubmitButton from "./SubmitButton";
 
 function Picker({ id, back }: { id: string; back: string }) {
   const availability = useAvailability("/admin/slots");
@@ -28,13 +29,9 @@ function Picker({ id, back }: { id: string; back: string }) {
         />
       )}
       <div className="flex justify-end mt-4">
-        <button
-          type="submit"
-          disabled={!date || !time}
-          className="premium-btn premium-btn-primary px-5 py-2 text-sm disabled:opacity-40 disabled:pointer-events-none"
-        >
+        <SubmitButton disabled={!date || !time} className="premium-btn premium-btn-primary px-5 py-2.5 text-sm disabled:pointer-events-none">
           Move appointment
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
@@ -49,7 +46,7 @@ export default function AdminReschedule({ id, back }: { id: string; back: string
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-xs font-semibold text-[var(--color-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+        className="min-h-10 md:min-h-8 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-xs font-semibold text-[var(--color-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
       >
         {open ? "Close" : "Reschedule"}
       </button>
