@@ -40,6 +40,25 @@ export type IconName =
   | "balance"
   | "hands";
 
+/** One opening window, 24-hour "HH:MM" (clinic timezone). */
+export type TimeRange = { opens: string; closes: string };
+
+export type BookingBreak = {
+  /** 24-hour "HH:MM" */
+  start: string;
+  /** 24-hour "HH:MM" */
+  end: string;
+  label?: string;
+  /** Days the break applies to. Leave out to apply every day. */
+  days?: DayOfWeek[];
+};
+
+export type BookingHoliday = {
+  /** "YYYY-MM-DD" in the clinic timezone */
+  date: string;
+  label: string;
+};
+
 export type Therapist = {
   name: string;
   /** Used in friendly copy such as "Hi, I'm …" and "Book with …" */
@@ -96,8 +115,22 @@ export type Testimonial = {
 
 export const siteConfig = {
   /* ── Plan & feature switches ─────────────────────────────────────────── */
+  /** "basic" = request form only. "pro" = adds online booking (see features.onlineBooking). */
   plan: "basic" as Plan,
   features: {
+    /**
+     * PRO — Online appointment booking (live calendar, instant confirmation,
+     * patient manage link, clinic admin at /admin).
+     *
+     * Default OFF so the site works without a database. When off, the Book
+     * page shows the FormSubmit request form exactly as before.
+     * Turn it on here, or per deployment with the env var
+     * NEXT_PUBLIC_FEATURE_ONLINE_BOOKING=true (the env var wins when set).
+     * Needs DATABASE_URL (or POSTGRES_URL) and SESSION_SECRET — if they are
+     * missing the Book page falls back to the request form with a notice.
+     * Settings live in `onlineBooking` below.
+     */
+    onlineBooking: false,
     /** "form" = FormSubmit email form (Basic). Pro/Premium may add "calendar". */
     booking: "form" as "form" | "whatsapp-only" | "calendar",
     payments: false,
@@ -165,6 +198,47 @@ export const siteConfig = {
       "An initial assessment usually takes 45–60 minutes.",
       "Wear comfortable clothing you can move in.",
     ],
+  },
+
+  /* ── Online booking (Pro) — used only when features.onlineBooking is on ── */
+  onlineBooking: {
+    /** All times are shown and calculated in this timezone (IST). */
+    timezone: "Asia/Kolkata",
+    timezoneLabel: "IST",
+    /** Length of one appointment slot in minutes (e.g. 30 or 45). */
+    slotMinutes: 45,
+    /** Bookable hours per weekday. An empty list = closed that day. */
+    hours: {
+      Monday: [{ opens: "09:00", closes: "19:00" }],
+      Tuesday: [{ opens: "09:00", closes: "19:00" }],
+      Wednesday: [{ opens: "09:00", closes: "19:00" }],
+      Thursday: [{ opens: "09:00", closes: "19:00" }],
+      Friday: [{ opens: "09:00", closes: "19:00" }],
+      Saturday: [{ opens: "09:00", closes: "14:00" }],
+      Sunday: [],
+    } as Record<DayOfWeek, TimeRange[]>,
+    /** Breaks inside opening hours (no slots offered). */
+    breaks: [
+      { start: "13:00", end: "14:00", label: "Lunch", days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] },
+    ] as BookingBreak[],
+    /** Clinic closed on these dates (more leave days can be blocked in /admin). DEMO dates. */
+    holidays: [
+      { date: "2026-11-08", label: "Diwali" },
+      { date: "2026-12-25", label: "Christmas" },
+      { date: "2027-01-26", label: "Republic Day" },
+    ] as BookingHoliday[],
+    /** How many days ahead patients can book (today = day 0). */
+    maxDaysAhead: 30,
+    /** Earliest bookable slot is at least this many minutes from now. */
+    minNoticeMinutes: 60,
+    /** Patients can cancel or reschedule online until this many hours before the appointment. */
+    cancellationCutoffHours: 4,
+    /** true = bookings are confirmed instantly. false = they wait for the clinic to confirm in /admin. */
+    autoConfirm: true,
+    /** Anti-spam: max upcoming bookings one phone number can hold at a time. */
+    maxUpcomingPerPhone: 3,
+    /** Where new-booking emails go. "" = contact.email. Can be overridden with CLINIC_NOTIFY_EMAIL. */
+    clinicNotifyEmail: "",
   },
 
   /* ── Location ────────────────────────────────────────────────────────── */
