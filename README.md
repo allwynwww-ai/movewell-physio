@@ -191,7 +191,7 @@ reschedule, mark done / no-show, block leave days, CSV export and simple stats.
    | --- | --- | --- |
    | `SESSION_SECRET` | yes | Random 32+ character secret. Generate: `openssl rand -base64 48` |
    | `ADMIN_PASSWORD` | yes | Password for `/admin` (use a long one) |
-   | `NEXT_PUBLIC_FEATURE_ONLINE_BOOKING` | yes* | `true` to switch online booking on (*or set `features.onlineBooking: true` in `site.config.ts`) |
+   | `FEATURE_ONLINE_BOOKING` (or `NEXT_PUBLIC_FEATURE_ONLINE_BOOKING`) | yes* | `true` to switch online booking on (*or set `features.onlineBooking: true` in `site.config.ts`) |
    | `RESEND_API_KEY` | optional | [Resend](https://resend.com) key for booking confirmation / change / cancellation emails. Without it, no emails are sent |
    | `RESEND_FROM_EMAIL` | optional | Sender on a domain verified in Resend |
    | `CLINIC_NOTIFY_EMAIL` | optional | Where new-booking alerts go (default: `contact.email`) |
