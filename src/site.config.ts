@@ -258,7 +258,6 @@ export const siteConfig = {
         "Targeted treatment for neck, upper back and lower back pain to restore mobility and reduce discomfort, combining manual therapy, exercise prescription and education.",
       features: ["Spinal assessment", "Manual therapy", "Posture correction", "Home exercise programs"],
       duration: "45 min",
-      priceINR: 800,
       icon: "spine",
     },
     {
@@ -268,7 +267,6 @@ export const siteConfig = {
         "Rehab to help you recover from sports injuries, regain strength and return to performance safely. Suitable for recreational and competitive athletes.",
       features: ["Injury assessment", "Sport-specific rehab", "Return-to-play planning", "Injury prevention"],
       duration: "45–60 min",
-      priceINR: 1000,
       icon: "sports",
     },
     {
@@ -278,7 +276,6 @@ export const siteConfig = {
         "Structured rehabilitation after surgery to optimise recovery, restore function and help you reach your goals with confidence.",
       features: ["Pre & post-op care", "Scar management", "Progressive loading", "Functional recovery"],
       duration: "45 min",
-      priceINR: 900,
       icon: "surgery",
     },
     {
