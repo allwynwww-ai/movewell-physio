@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminReschedule from "@/components/admin/AdminReschedule";
 import ConfirmSubmit from "@/components/admin/ConfirmSubmit";
+import SubmitButton from "@/components/admin/SubmitButton";
 import {
   blockDayAction,
   cancelAction,
@@ -20,13 +21,14 @@ import {
 } from "@/lib/booking/appointments";
 import { isAdmin } from "@/lib/booking/admin-auth";
 import { adminConfigured, bookingStatus } from "@/lib/booking/env";
-import { addDays, dateKeyOf, formatDateKey, formatSlotTime, timeOf, todayKey, TZ_LABEL } from "@/lib/booking/time";
+import { addDays, dateKeyOf, formatDateKey, formatSlotTime, startOfWeek, timeOf, todayKey, TZ_LABEL } from "@/lib/booking/time";
+import { verifyNotice } from "@/lib/booking/tokens";
 import { siteConfig } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-type View = ListScope | "week";
-const VIEWS: { id: View; label: string }[] = [
+type View = ListScope;
+const VIEWS: { id: ListScope; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "upcoming", label: "Upcoming" },
   { id: "week", label: "Week" },
@@ -44,7 +46,7 @@ const STATUS: Record<AppointmentStatus, { label: string; cls: string }> = {
 
 const card = "bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]";
 const smallBtn =
-  "px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-xs font-semibold text-[var(--color-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors";
+  "min-h-10 md:min-h-8 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-xs font-semibold text-[var(--color-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors";
 const input =
   "w-full px-4 py-2.5 rounded-lg border border-[var(--color-border)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 outline-none transition text-sm bg-[var(--color-surface)] text-[var(--color-text)]";
 
@@ -126,9 +128,7 @@ function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
     <form action={setStatusAction}>
       {hidden}
       <input type="hidden" name="status" value={status} />
-      <button type="submit" className={smallBtn}>
-        {label}
-      </button>
+      <SubmitButton className={smallBtn}>{label}</SubmitButton>
     </form>
   );
   return (
@@ -140,7 +140,7 @@ function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-[var(--color-secondary)]">{a.name}</p>
+            <p className="font-semibold text-[var(--color-secondary)] break-words [overflow-wrap:anywhere] min-w-0">{a.name}</p>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
             <span className="text-[11px] text-[var(--color-text-muted)]">{a.ref}</span>
           </div>
@@ -153,7 +153,11 @@ function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
               {a.email}
             </a>
           </p>
-          {a.note && <p className="text-sm text-[var(--color-text)] mt-2 rounded-lg bg-[var(--color-bg)] px-3 py-2">“{a.note}”</p>}
+          {a.note && (
+            <p className="text-sm text-[var(--color-text)] mt-2 rounded-lg bg-[var(--color-bg)] px-3 py-2 whitespace-pre-line [overflow-wrap:anywhere]">
+              “{a.note}”
+            </p>
+          )}
           {a.status === "cancelled" && a.cancelledBy && (
             <p className="text-xs text-[var(--color-text-muted)] mt-2">Cancelled by {a.cancelledBy}</p>
           )}
@@ -200,7 +204,7 @@ function WeekCalendar({ rows, blocked }: { rows: Appointment[]; blocked: Map<str
             {blocked.has(d) && <p className="text-[11px] text-red-600 mt-1">Blocked · {blocked.get(d)}</p>}
             <ul className="mt-2 space-y-1.5">
               {items.map((a) => (
-                <li key={a.id} className={`rounded-lg px-2 py-1.5 text-xs ${STATUS[a.status].cls}`}>
+                <li key={a.id} className={`rounded-lg px-2 py-1.5 text-xs [overflow-wrap:anywhere] ${STATUS[a.status].cls}`}>
                   <span className="font-bold">{formatSlotTime(timeOf(a.startsAt))}</span> {a.name}
                 </li>
               ))}
@@ -216,11 +220,16 @@ function WeekCalendar({ rows, blocked }: { rows: Appointment[]; blocked: Map<str
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; q?: string; msg?: string; error?: string }>;
+  searchParams: Promise<{ view?: string; q?: string; msg?: string; error?: string; sig?: string }>;
 }) {
   const sp = await searchParams;
   if (!adminConfigured()) return <NotConfigured />;
-  if (!(await isAdmin())) return <Login error={sp.error} msg={sp.msg} />;
+  // Banner text comes from the redirect URL; only show it if our server signed it.
+  const notice = {
+    msg: verifyNotice(sp.msg && `msg:${sp.msg}`, sp.sig) && sp.msg,
+    error: verifyNotice(sp.error && `error:${sp.error}`, sp.sig) && sp.error,
+  };
+  if (!(await isAdmin())) return <Login error={notice.error || undefined} msg={notice.msg || undefined} />;
 
   const view: View = VIEWS.some((v) => v.id === sp.view) ? (sp.view as View) : "today";
   const q = (sp.q ?? "").slice(0, 80);
@@ -228,15 +237,17 @@ export default async function AdminPage({
 
   const [stats, rows, blockedDays] = await Promise.all([
     getStats(),
-    listAppointments(view === "week" ? "upcoming" : view, q),
+    listAppointments(view, q),
     listBlockedDays(),
   ]);
   const blockedMap = new Map(blockedDays.map((b) => [b.day, b.reason]));
   const status = bookingStatus();
 
+  const weekStart = startOfWeek(todayKey());
+  const short = (d: string) => formatDateKey(d, { year: undefined, weekday: undefined });
   const statCards = [
     { label: "Today", value: String(stats.today) },
-    { label: "This week", value: String(stats.thisWeek) },
+    { label: "This week", value: String(stats.thisWeek), hint: `Mon ${short(weekStart)} – Sun ${short(addDays(weekStart, 6))}` },
     { label: "Upcoming", value: String(stats.upcoming), hint: stats.pending ? `${stats.pending} pending` : undefined },
     {
       label: "No-show rate",
@@ -254,13 +265,11 @@ export default async function AdminPage({
           <p className="text-sm text-[var(--color-text-muted)] mt-1">All times {TZ_LABEL}.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href={`/admin/export?${new URLSearchParams({ scope: view === "week" ? "upcoming" : view, ...(q ? { q } : {}) })}`} className="premium-btn premium-btn-secondary px-4 py-2 text-sm">
+          <a href={`/admin/export?${new URLSearchParams({ scope: view, ...(q ? { q } : {}) })}`} className="premium-btn premium-btn-secondary px-4 py-2 text-sm">
             Export CSV
           </a>
           <form action={logoutAction}>
-            <button type="submit" className="premium-btn premium-btn-secondary px-4 py-2 text-sm">
-              Sign out
-            </button>
+            <SubmitButton className="premium-btn premium-btn-secondary px-4 py-2 text-sm">Sign out</SubmitButton>
           </form>
         </div>
       </div>
@@ -272,8 +281,8 @@ export default async function AdminPage({
             manage existing bookings here.
           </Banner>
         )}
-        {sp.msg && <Banner kind="ok">{sp.msg}</Banner>}
-        {sp.error && <Banner kind="error">{sp.error}</Banner>}
+        {notice.msg && <Banner kind="ok">{notice.msg}</Banner>}
+        {notice.error && <Banner kind="error">{notice.error}</Banner>}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" data-testid="admin-stats">
@@ -288,13 +297,21 @@ export default async function AdminPage({
 
       <div className={`${card} p-3 mb-8 grid grid-cols-7 gap-1 text-center`} aria-label="Next 7 days">
         {stats.week.map((d) => (
-          <div key={d.date} className={`rounded-lg py-2 ${d.date === todayKey() ? "bg-[var(--color-light-teal)]" : ""}`}>
+          <div
+            key={d.date}
+            title={
+              blockedMap.has(d.date)
+                ? `Blocked (${blockedMap.get(d.date)}) · ${d.count} booking${d.count === 1 ? "" : "s"} still on this day`
+                : `${d.count} booking${d.count === 1 ? "" : "s"}`
+            }
+            className={`rounded-lg py-2 ${d.date === todayKey() ? "bg-[var(--color-light-teal)]" : ""}`}
+          >
             <p className="text-[10px] sm:text-xs font-semibold uppercase text-[var(--color-text-muted)]">
               {formatDateKey(d.date, { day: undefined, month: undefined, year: undefined })}
             </p>
             <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">{Number(d.date.slice(8))}</p>
             <p className={`text-base sm:text-lg font-bold ${blockedMap.has(d.date) ? "text-red-500" : "text-[var(--color-secondary)]"}`}>
-              {blockedMap.has(d.date) ? "×" : d.count}
+              {blockedMap.has(d.date) ? `×${d.count ? d.count : ""}` : d.count}
             </p>
           </div>
         ))}
@@ -309,7 +326,7 @@ export default async function AdminPage({
                   key={v.id}
                   href={`/admin?${new URLSearchParams({ view: v.id, ...(q ? { q } : {}) })}`}
                   aria-current={v.id === view ? "page" : undefined}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                  className={`min-h-10 md:min-h-8 flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                     v.id === view
                       ? "bg-[var(--color-primary)] text-white dark:text-[#0B1220]"
                       : "text-[var(--color-text-muted)] hover:text-[var(--color-secondary)]"
@@ -321,7 +338,7 @@ export default async function AdminPage({
             </nav>
             <form action="/admin" method="get" className="flex gap-2" role="search">
               <input type="hidden" name="view" value={view} />
-              <input name="q" defaultValue={q} placeholder="Search name, phone or ref" aria-label="Search" className={`${input} sm:w-60`} />
+              <input name="q" defaultValue={q} placeholder="Search name, phone, email or ref" aria-label="Search" className={`${input} sm:w-60`} />
               <button type="submit" className="premium-btn premium-btn-primary px-4 py-2 text-sm">
                 Search
               </button>
@@ -338,7 +355,15 @@ export default async function AdminPage({
             </ul>
           ) : (
             <div className={`${card} p-10 text-center text-sm text-[var(--color-text-muted)]`}>
-              {q ? `No appointments match “${q}”.` : view === "today" ? "No appointments today." : "No appointments here yet."}
+              {q
+                ? `No appointments match “${q}”.`
+                : {
+                    today: "No appointments today.",
+                    upcoming: "No upcoming appointments.",
+                    week: "No bookings in the next 7 days.",
+                    past: "No past appointments yet.",
+                    all: "No appointments yet.",
+                  }[view]}
             </div>
           )}
         </div>
@@ -371,9 +396,7 @@ export default async function AdminPage({
                     <form action={unblockDayAction}>
                       <input type="hidden" name="back" value={back} />
                       <input type="hidden" name="day" value={b.day} />
-                      <button type="submit" className={smallBtn}>
-                        Re-open
-                      </button>
+                      <SubmitButton className={smallBtn}>Re-open</SubmitButton>
                     </form>
                   </li>
                 ))}
