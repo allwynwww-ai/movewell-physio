@@ -1,91 +1,17 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import Icon from "@/components/Icon";
+import { formatINR, siteConfig } from "@/lib/site";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Our Services",
-  description:
-    "Explore our physiotherapy services including back & neck pain, sports injury rehabilitation, post-surgical rehab, pelvic floor therapy and more.",
-};
+  description: `Physiotherapy services at ${siteConfig.brand.name}: ${siteConfig.services
+    .map((s) => s.name)
+    .join(", ")}.`,
+  path: "/services",
+});
 
-const services = [
-  {
-    id: "back-neck-pain",
-    title: "Back & Neck Pain",
-    description:
-      "Targeted treatment for neck, upper back and lower back pain to restore mobility and reduce discomfort. We use a combination of manual therapy, exercise prescription and education.",
-    features: ["Spinal assessment", "Manual therapy", "Posture correction", "Home exercise programs"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3c-1 2-2 3.5-2 6s1 4 2 6c1-2 2-3.5 2-6s-1-4-2-6z" />
-        <path d="M10 9h4M10 12h4M11 15h2M12 15v5" />
-      </svg>
-    ),
-  },
-  {
-    id: "sports-injury",
-    title: "Sports Injury Rehabilitation",
-    description:
-      "Specialised rehab to help you recover from sports injuries, regain strength and return to performance safely. Suitable for recreational and elite athletes.",
-    features: ["Injury assessment", "Sport-specific rehab", "Return-to-play planning", "Injury prevention"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="5" r="2" />
-        <path d="M12 7v4l-3 6M12 11l3 6M9 13h6M8 21l2-4M16 21l-2-4" />
-      </svg>
-    ),
-  },
-  {
-    id: "post-surgical",
-    title: "Post-Surgical Rehab",
-    description:
-      "Structured rehabilitation following surgery to optimise recovery, restore function and help you achieve your goals with confidence.",
-    features: ["Pre & post-op care", "Scar management", "Progressive loading", "Functional recovery"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 14c0-2 1.5-4 4-5.5C14.5 10 16 12 16 14a4 4 0 01-8 0z" />
-        <path d="M12 8.5V6M10 7h4M7 18h10M9 21h6" />
-      </svg>
-    ),
-  },
-  {
-    id: "pelvic-floor",
-    title: "Pelvic Floor Therapy",
-    description:
-      "Specialist care for pelvic health concerns including incontinence, pelvic pain and pre/postnatal support in a private and supportive environment.",
-    features: ["Pelvic assessment", "Internal & external techniques", "Bladder training", "Pregnancy support"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 21c-4-3.5-7-6.5-7-10a7 7 0 1114 0c0 3.5-3 6.5-7 10z" />
-        <circle cx="12" cy="11" r="2.5" />
-      </svg>
-    ),
-  },
-  {
-    id: "vestibular-balance",
-    title: "Vestibular & Balance",
-    description:
-      "Assessment and treatment for dizziness, vertigo and balance disorders to improve stability and confidence in daily activities.",
-    features: ["Vestibular assessment", "Canalith repositioning", "Balance retraining", "Fall prevention"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10l1.4 1.4M3 12h2m14 0h2M5.6 18.4l1.4-1.4m10-10l1.4-1.4" />
-        <circle cx="12" cy="12" r="4" />
-      </svg>
-    ),
-  },
-  {
-    id: "manual-therapy",
-    title: "Manual Therapy",
-    description:
-      "Hands-on techniques including joint mobilisation, soft tissue therapy and manipulation to relieve pain and improve movement.",
-    features: ["Joint mobilisation", "Soft tissue release", "Trigger point therapy", "Myofascial techniques"],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-      </svg>
-    ),
-  },
-];
+const services = siteConfig.services;
 
 export default function ServicesPage() {
   return (
@@ -107,16 +33,30 @@ export default function ServicesPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {services.map((service) => (
               <article
-                key={service.title}
+                key={service.id}
                 id={service.id}
                 className="premium-card p-7 group flex flex-col scroll-mt-28"
               >
                 <div className="w-12 h-12 rounded-xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                  {service.icon}
+                  <Icon name={service.icon} />
                 </div>
                 <h2 className="text-lg font-semibold text-[var(--color-secondary)] mb-2 tracking-tight">
-                  {service.title}
+                  {service.name}
                 </h2>
+                {(service.duration || service.priceINR !== undefined) && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {service.duration && (
+                      <span className="text-xs font-medium text-[var(--color-text-muted)] bg-[var(--color-bg)] border border-[var(--color-border-light)] rounded-full px-2.5 py-0.5">
+                        {service.duration}
+                      </span>
+                    )}
+                    {service.priceINR !== undefined && (
+                      <span className="text-xs font-semibold text-[var(--color-primary)] bg-[var(--color-light-teal)] rounded-full px-2.5 py-0.5">
+                        {formatINR(service.priceINR)}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-[var(--color-text-muted)] leading-relaxed mb-5 flex-1">
                   {service.description}
                 </p>

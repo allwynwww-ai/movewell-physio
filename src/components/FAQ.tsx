@@ -2,26 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
+import { siteConfig, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 
-const faqs = [
-  {
-    q: "Do I need a referral?",
-    a: "No. You can book directly with us. If you have reports or a referral from your doctor, please bring them to your first visit.",
-  },
-  {
-    q: "What should I wear?",
-    a: "Wear comfortable, loose-fitting clothes you can move in — for example shorts or activewear for lower body, and a T-shirt for upper body assessments. Supportive footwear is helpful if you have leg or mobility concerns.",
-  },
-  {
-    q: "How many sessions will I need?",
-    a: "It depends on your condition, goals and how your body responds. Many patients notice improvement within 3–6 sessions. After your first assessment we will outline a clear plan and expected timeline.",
-  },
-  {
-    q: "How long is a session?",
-    a: "An initial assessment usually takes 45–60 minutes. Follow-up sessions are typically 30–45 minutes, depending on your treatment plan.",
-  },
-];
+const faqs = siteConfig.faq;
 
 function FAQItem({
   item,
@@ -107,7 +90,7 @@ export default function FAQ() {
             Have questions? We&apos;re here to help.
           </h2>
           <p className="text-[var(--color-text-muted)]">
-            Common questions about physiotherapy at our Thane clinic.
+            Common questions about physiotherapy at {siteConfig.brand.name}.
           </p>
         </div>
 

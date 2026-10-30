@@ -1,37 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+import { siteConfig } from "@/site.config";
 
 type Theme = "light" | "dark";
+const THEME_EVENT = "clinic-theme-change";
 
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  const stored = localStorage.getItem("movewell-theme") as Theme | null;
-  if (stored === "light" || stored === "dark") return stored;
-  if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
-  return "light";
+// The inline script in layout.tsx sets the .dark class before first paint,
+// so the <html> class list is the source of truth for the current theme.
+function subscribe(callback: () => void) {
+  window.addEventListener(THEME_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(THEME_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getSnapshot(): Theme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function getServerSnapshot(): Theme | null {
+  return null;
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const initial = getInitialTheme();
-    setTheme(initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
-    setMounted(true);
-  }, []);
+  const theme = useSyncExternalStore<Theme | null>(subscribe, getSnapshot, getServerSnapshot);
 
   function toggle() {
-    const next: Theme = theme === "light" ? "dark" : "light";
-    setTheme(next);
+    const next: Theme = getSnapshot() === "light" ? "dark" : "light";
     document.documentElement.classList.toggle("dark", next === "dark");
-    localStorage.setItem("movewell-theme", next);
+    try {
+      localStorage.setItem(siteConfig.brand.themeStorageKey, next);
+    } catch {
+      /* storage unavailable – theme still applies for this page view */
+    }
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
-  // Avoid hydration mismatch — render neutral placeholder until mounted
-  if (!mounted) {
+  // Avoid hydration mismatch — render neutral placeholder on the server
+  if (theme === null) {
     return (
       <button
         type="button"

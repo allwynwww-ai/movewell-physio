@@ -2,134 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const testimonials = [
-  {
-    quote:
-      "Emily is amazing! She listened, explained everything clearly, and helped me get back to running pain-free after months of struggling with knee pain. Highly recommend.",
-    name: "James T.",
-    detail: "Runner · Knee Injury",
-    initials: "JT",
-  },
-  {
-    quote:
-      "Professional, friendly and effective treatment. After my shoulder surgery, the rehab plan was clear and progressive. I’m back to full strength much faster than expected.",
-    name: "Sarah L.",
-    detail: "Post-Surgical Rehab",
-    initials: "SL",
-  },
-  {
-    quote:
-      "I finally have relief from years of neck pain. Life-changing care. Emily took the time to understand my desk setup and gave practical advice I still use every day.",
-    name: "Michael D.",
-    detail: "Office Worker · Neck Pain",
-    initials: "MD",
-  },
-  {
-    quote:
-      "As a new mum dealing with pelvic floor issues, I felt completely supported. The treatment was private, respectful and effective. I’m so grateful.",
-    name: "Anita K.",
-    detail: "Pelvic Floor Therapy",
-    initials: "AK",
-  },
-  {
-    quote:
-      "Best physio experience I’ve had. Clear communication, hands-on treatment, and a home exercise program that actually worked. Back pain is finally under control.",
-    name: "Rohan P.",
-    detail: "Lower Back Pain",
-    initials: "RP",
-  },
-  {
-    quote:
-      "I came in with dizziness and balance issues. After a few sessions the vertigo settled and I feel steady on my feet again. Truly life-changing.",
-    name: "Linda W.",
-    detail: "Vestibular & Balance",
-    initials: "LW",
-  },
-  {
-    quote:
-      "My frozen shoulder had limited me for almost a year. The progressive treatment plan and careful hands-on work restored movement I thought I’d lost for good.",
-    name: "Suresh M.",
-    detail: "Frozen Shoulder",
-    initials: "SM",
-  },
-  {
-    quote:
-      "Excellent care after my ACL reconstruction. Every session was structured, motivating, and focused on getting me back to cricket safely.",
-    name: "Arjun S.",
-    detail: "ACL Rehab · Sports",
-    initials: "AS",
-  },
-  {
-    quote:
-      "I work long hours at a desk and had constant upper back tightness. Within a few visits the pain reduced and I learnt exercises that keep me comfortable at work.",
-    name: "Priya N.",
-    detail: "Desk Worker · Upper Back",
-    initials: "PN",
-  },
-  {
-    quote:
-      "Very thorough assessment and clear explanation of what was wrong. The treatment for my tennis elbow helped me return to my weekend matches without fear.",
-    name: "Vikram R.",
-    detail: "Tennis Elbow",
-    initials: "VR",
-  },
-  {
-    quote:
-      "Post-pregnancy, I struggled with lower back and pelvic discomfort. The support and guidance I received here made a real difference to my recovery.",
-    name: "Meera J.",
-    detail: "Postnatal Care",
-    initials: "MJ",
-  },
-  {
-    quote:
-      "I had chronic plantar fasciitis that affected my morning walks. The combination of treatment and a simple home routine has me walking pain-free again.",
-    name: "Deepak H.",
-    detail: "Plantar Fasciitis",
-    initials: "DH",
-  },
-  {
-    quote:
-      "After a road accident I needed careful rehab for my wrist and shoulder. The progress was tracked clearly and I regained strength faster than expected.",
-    name: "Kavita B.",
-    detail: "Post-Trauma Rehab",
-    initials: "KB",
-  },
-  {
-    quote:
-      "My elderly father was unsteady on his feet. The balance training sessions improved his confidence and reduced our worry about falls at home.",
-    name: "Nikhil G.",
-    detail: "Balance · Elderly Care",
-    initials: "NG",
-  },
-  {
-    quote:
-      "Sciatica pain had me struggling to sit through meetings. Targeted treatment and posture advice changed that — I can work a full day without constant discomfort.",
-    name: "Ayesha F.",
-    detail: "Sciatica",
-    initials: "AF",
-  },
-  {
-    quote:
-      "As a gym trainer I needed precise rehab after a lower back strain. The plan was practical, sport-aware, and got me lifting safely again.",
-    name: "Imran Q.",
-    detail: "Gym Injury · Back",
-    initials: "IQ",
-  },
-  {
-    quote:
-      "I appreciated the honest timelines and realistic goals. My knee osteoarthritis is managed much better and I can enjoy my evening walks again.",
-    name: "Sunita D.",
-    detail: "Knee Osteoarthritis",
-    initials: "SD",
-  },
-  {
-    quote:
-      "Friendly clinic, on-time appointments, and treatment that actually works. My neck mobility is better than it has been in years.",
-    name: "Rajesh V.",
-    detail: "Chronic Neck Stiffness",
-    initials: "RV",
-  },
-];
+import { siteConfig } from "@/site.config";
+
+function initialsOf(name: string): string {
+  const words = name.replace(/[^\p{L}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  const first = words[0][0] ?? "";
+  const last = words.length > 1 ? words[words.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
+const testimonials = siteConfig.testimonials.map((t) => ({
+  ...t,
+  initials: initialsOf(t.name),
+}));
+const showSampleTag = siteConfig.showSampleNotice;
 
 function getPerView() {
   if (typeof window === "undefined") return 3;
@@ -138,10 +25,11 @@ function getPerView() {
   return 3;
 }
 
-function Stars() {
+function Stars({ rating = 5 }: { rating?: number }) {
+  const count = Math.max(0, Math.min(5, Math.round(rating)));
   return (
-    <div className="flex gap-1 text-amber-400 mb-4">
-      {[...Array(5)].map((_, i) => (
+    <div className="flex gap-1 text-amber-400 mb-4" aria-label={`${count} out of 5 stars`}>
+      {[...Array(count)].map((_, i) => (
         <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
           <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
         </svg>
@@ -152,7 +40,7 @@ function Stars() {
 
 export default function TestimonialsCarousel() {
   const [perView, setPerView] = useState(3);
-  const [index, setIndex] = useState(0);
+  const [rawIndex, setIndex] = useState(0);
   const [drag, setDrag] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef<number | null>(null);
@@ -169,9 +57,8 @@ export default function TestimonialsCarousel() {
 
   const maxIndex = Math.max(0, testimonials.length - perView);
 
-  useEffect(() => {
-    setIndex((i) => Math.min(i, maxIndex));
-  }, [maxIndex]);
+  // Clamp when the number of cards per view changes (derived, no effect needed)
+  const index = Math.min(rawIndex, maxIndex);
 
   const goTo = useCallback(
     (next: number) => {
@@ -250,7 +137,14 @@ export default function TestimonialsCarousel() {
                 style={{ flex: `0 0 ${slidePct}%`, maxWidth: `${slidePct}%` }}
               >
                 <div className="premium-card p-6 md:p-7 flex flex-col h-full min-h-[260px] transition-transform duration-500 hover:-translate-y-0.5">
-                  <Stars />
+                  <div className="flex items-start justify-between gap-2">
+                    <Stars rating={t.rating} />
+                    {showSampleTag && t.isSample && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full px-2 py-0.5">
+                        Sample
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[var(--color-text)] leading-relaxed mb-6 flex-1 text-[15px]">
                     “{t.quote}”
                   </p>
@@ -300,7 +194,7 @@ export default function TestimonialsCarousel() {
       </div>
 
       <p className="text-center text-xs text-[var(--color-text-muted)] mt-3">
-        {index + 1}–{Math.min(index + perView, testimonials.length)} of {testimonials.length} reviews
+        {index + 1}–{Math.min(index + perView, testimonials.length)} of {testimonials.length} {showSampleTag && testimonials.some((t) => t.isSample) ? "sample reviews" : "reviews"}
       </p>
     </div>
   );
