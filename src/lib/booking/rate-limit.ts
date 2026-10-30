@@ -20,6 +20,19 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   return true;
 }
 
+/** Read-only check: is this key already over the limit? (does not record a hit) */
+export function isRateLimited(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  return (buckets.get(key) ?? []).filter((t) => now - t < windowMs).length >= limit;
+}
+
+/** Record a hit without checking (e.g. only count failed logins). */
+export function recordHit(key: string): void {
+  const hits = buckets.get(key) ?? [];
+  hits.push(Date.now());
+  buckets.set(key, hits);
+}
+
 export function clientIp(headers: Headers): string {
   return (
     headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

@@ -7,6 +7,7 @@ import {
   blockDay,
   BookingError,
   cancelAppointment,
+  getAppointment,
   rescheduleAppointment,
   setStatus,
   unblockDay,
@@ -15,22 +16,31 @@ import { ADMIN_COOKIE, ADMIN_SESSION_TTL, checkAdminPassword, isAdmin } from "@/
 import { sendChangeEmails } from "@/lib/booking/email";
 import { adminConfigured } from "@/lib/booking/env";
 import { manageUrl, originOf } from "@/lib/booking/http";
-import { clientIp, rateLimit } from "@/lib/booking/rate-limit";
-import { adminSessionValue, manageToken } from "@/lib/booking/tokens";
+import { clientIp, isRateLimited, recordHit } from "@/lib/booking/rate-limit";
+import { adminSessionValue, manageToken, noticeSig } from "@/lib/booking/tokens";
 
 /** Only ever redirect back inside /admin. */
-function backTo(formData: FormData, params: Record<string, string>): never {
+function backTo(formData: FormData, params: { msg?: string; error?: string }): never {
   const raw = String(formData.get("back") ?? "/admin");
   const safe = raw.startsWith("/admin") && !raw.startsWith("//") ? raw : "/admin";
   const url = new URL(safe, "http://local");
-  url.searchParams.delete("msg");
-  url.searchParams.delete("error");
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  redirect(`${url.pathname}${url.search}${url.hash}`);
+  redirect(noticeUrl(`${url.pathname}${url.search}`, params));
+}
+
+/** Build a redirect URL carrying a signed banner message (see noticeSig). */
+function noticeUrl(path: string, params: { msg?: string; error?: string }): string {
+  const url = new URL(path, "http://local");
+  for (const k of ["msg", "error", "sig"]) url.searchParams.delete(k);
+  const [kind, text] = params.error ? ["error", params.error] : params.msg ? ["msg", params.msg] : [];
+  if (kind && text) {
+    url.searchParams.set(kind, text);
+    url.searchParams.set("sig", noticeSig(`${kind}:${text}`));
+  }
+  return `${url.pathname}${url.search}`;
 }
 
 async function requireAdmin() {
-  if (!(await isAdmin())) redirect("/admin?error=Please+sign+in+again.");
+  if (!(await isAdmin())) redirect(noticeUrl("/admin", { error: "Please sign in again." }));
 }
 
 function errorMessage(err: unknown): string {
@@ -46,13 +56,15 @@ async function links(id: string) {
 
 export async function loginAction(formData: FormData) {
   if (!adminConfigured()) redirect("/admin");
-  const ip = clientIp(await headers());
-  if (!rateLimit(`admin-login:${ip}`, 8, 15 * 60 * 1000)) {
-    redirect("/admin?error=Too+many+attempts.+Try+again+in+15+minutes.");
+  // Only failed attempts count: 8 wrong passwords per IP per 15 minutes.
+  const key = `admin-login:${clientIp(await headers())}`;
+  if (isRateLimited(key, 8, 15 * 60 * 1000)) {
+    redirect(noticeUrl("/admin", { error: "Too many attempts. Try again in 15 minutes." }));
   }
   const password = String(formData.get("password") ?? "");
   if (!password || password.length > 200 || !checkAdminPassword(password)) {
-    redirect("/admin?error=Incorrect+password.");
+    recordHit(key);
+    redirect(noticeUrl("/admin", { error: "Incorrect password." }));
   }
   const jar = await cookies();
   jar.set(ADMIN_COOKIE, adminSessionValue(ADMIN_SESSION_TTL), {
@@ -68,7 +80,7 @@ export async function loginAction(formData: FormData) {
 export async function logoutAction() {
   const jar = await cookies();
   jar.set(ADMIN_COOKIE, "", { path: "/admin", maxAge: 0 });
-  redirect("/admin?msg=Signed+out.");
+  redirect(noticeUrl("/admin", { msg: "Signed out." }));
 }
 
 const STATUS_MSG = {
@@ -101,7 +113,9 @@ export async function cancelAction(formData: FormData) {
     const l = await links(id);
     if (formData.get("notify") !== "no") after(() => sendChangeEmails("cancelled", a, "clinic", l));
   } catch (err) {
-    backTo(formData, { error: errorMessage(err) });
+    // A double-click (or two tabs) cancelling the same booking: the second request is a no-op, not an error.
+    const already = err instanceof BookingError && err.code === "not-active" && (await getAppointment(id).catch(() => null))?.status === "cancelled";
+    if (!already) backTo(formData, { error: errorMessage(err) });
   }
   backTo(formData, { msg: "Appointment cancelled." });
 }

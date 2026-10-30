@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { sessionSecret } from "./env";
 
 function sign(purpose: string, value: string): string {
@@ -35,19 +35,44 @@ export function verifyManageToken(token: string | null | undefined): string | nu
   }
 }
 
+/**
+ * The admin session is bound to the current ADMIN_PASSWORD: changing the
+ * password (and redeploying) signs every existing session out.
+ */
+function passwordTag(): string {
+  return createHash("sha256").update(`movewell-admin:${process.env.ADMIN_PASSWORD ?? ""}`).digest("base64url").slice(0, 16);
+}
+
 /** Signed admin session value: "<expiry ms>.<signature>". */
 export function adminSessionValue(ttlSeconds: number): string {
   const exp = String(Date.now() + ttlSeconds * 1000);
-  return `${exp}.${sign("admin", exp)}`;
+  return `${exp}.${sign("admin", `${exp}:${passwordTag()}`)}`;
 }
 
 export function verifyAdminSession(value: string | undefined): boolean {
-  if (!value) return false;
+  if (!value || value.length > 200) return false;
   const [exp, sig] = value.split(".");
   if (!exp || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
   try {
-    return safeEqual(sig, sign("admin", exp));
+    return safeEqual(sig, sign("admin", `${exp}:${passwordTag()}`));
   } catch {
     return false;
+  }
+}
+
+/**
+ * Admin banner messages travel in the redirect URL. They are signed so a link
+ * from someone else can't make arbitrary text look like an official notice.
+ */
+export function noticeSig(text: string): string {
+  return sign("notice", text).slice(0, 22);
+}
+
+export function verifyNotice(text: string | undefined, sig: string | undefined): string | undefined {
+  if (!text || !sig || text.length > 300) return undefined;
+  try {
+    return safeEqual(sig, noticeSig(text)) ? text : undefined;
+  } catch {
+    return undefined;
   }
 }
