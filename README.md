@@ -33,9 +33,11 @@ zero configuration.
 - Light/dark mode, accessible navigation, `prefers-reduced-motion` support
 - Optimised local images with a credits file (`public/images/CREDITS.md`)
 
-### Pro — planned
+### Pro — online booking available (off by default), rest planned
 
-- Online calendar booking with real-time slots
+- **Online appointment booking** — live calendar of free slots, instant confirmation,
+  calendar invite (.ics), patient self-service cancel/reschedule, clinic admin at `/admin`.
+  See [Online booking (Pro)](#online-booking-pro) below.
 - Google reviews integration
 - Multiple therapists with individual profiles
 - Analytics (privacy-friendly) and conversion tracking
@@ -165,6 +167,61 @@ reviews without consent, and don't claim ratings or patient numbers you can't ba
 
 ---
 
+## Online booking (Pro)
+
+Off by default. When it's off (or not fully set up) the Book page shows the FormSubmit
+request form exactly as before, so nothing breaks for Basic clinics.
+
+**What patients get** (`/book`): pick a service → pick a day and a free time on a calendar
+(all times IST) → enter name, phone, email, optional note and tick consent → the booking is
+confirmed instantly with a reference number, an "Add to calendar" (.ics) file and a private
+"Manage booking" link to reschedule or cancel up to `cancellationCutoffHours` before.
+Two people can never grab the same slot — the database enforces it.
+
+**What the clinic gets** (`/admin`, password-protected, hidden from search engines):
+today / upcoming / week / past views, search by name, phone or reference, confirm, cancel,
+reschedule, mark done / no-show, block leave days, CSV export and simple stats.
+
+### Turn it on (on Vercel)
+
+1. **Database:** Vercel project → *Storage* → *Create* → **Neon (Postgres)** → connect it to
+   the project. This adds `DATABASE_URL` / `POSTGRES_URL` automatically.
+2. **Environment variables** (Project → Settings → Environment Variables):
+   | Name | Required | What it is |
+   | --- | --- | --- |
+   | `SESSION_SECRET` | yes | Random 32+ character secret. Generate: `openssl rand -base64 48` |
+   | `ADMIN_PASSWORD` | yes | Password for `/admin` (use a long one) |
+   | `FEATURE_ONLINE_BOOKING` (or `NEXT_PUBLIC_FEATURE_ONLINE_BOOKING`) | yes* | `true` to switch online booking on (*or set `features.onlineBooking: true` in `site.config.ts`) |
+   | `RESEND_API_KEY` | optional | [Resend](https://resend.com) key for booking confirmation / change / cancellation emails. Without it, no emails are sent |
+   | `RESEND_FROM_EMAIL` | optional | Sender on a domain verified in Resend |
+   | `CLINIC_NOTIFY_EMAIL` | optional | Where new-booking alerts go (default: `contact.email`) |
+3. **Create the tables:** locally with the production `DATABASE_URL`, run
+   `npm run db:migrate`. (The app also creates the tables automatically on first use, but
+   running the migration up front is cleaner.)
+4. **Redeploy** — the flag is read at build time, so changing env vars needs a new deployment.
+5. Test it: make a booking on `/book`, open the manage link, sign in to `/admin`, then
+   cancel the test booking.
+
+### Settings (`src/site.config.ts` → `onlineBooking`)
+
+Slot length, bookable hours per weekday, breaks, holidays, how far ahead patients can book,
+minimum notice, cancellation cut-off, instant vs. manual confirmation (`autoConfirm`) and a
+per-phone limit on upcoming bookings. Extra leave days can be blocked any time in `/admin`.
+Services and their durations come from `services` in the same file.
+
+### Local development
+
+```bash
+cp .env.example .env.local   # fill in DATABASE_URL, SESSION_SECRET, ADMIN_PASSWORD
+                             # and NEXT_PUBLIC_FEATURE_ONLINE_BOOKING=true
+npm run db:migrate
+npm run dev
+```
+
+Not included: Google Calendar sync, online payments, WhatsApp reminders.
+
+---
+
 ## Go-live checklist
 
 - [ ] Clinic name, phone, WhatsApp, email and address are correct (`isDemoNumber: false`)
@@ -179,6 +236,8 @@ reviews without consent, and don't claim ratings or patient numbers you can't ba
 - [ ] Privacy Policy and Terms reviewed by a lawyer; grievance officer details filled in
 - [ ] `seo.siteUrl` set; `/sitemap.xml` and `/robots.txt` show the live domain
 - [ ] Share preview checked (e.g. paste the URL into WhatsApp)
+- [ ] If using online booking: database connected, `SESSION_SECRET` + `ADMIN_PASSWORD` set,
+      migration run, a test booking made and cancelled, `/admin` login works
 - [ ] `npm run lint` and `npm run build` pass
 - [ ] Site tested on a phone, in light and dark mode
 - [ ] Google Business Profile links to the new site
@@ -195,6 +254,10 @@ src/
   components/           ← header, footer, booking form, carousel, etc.
   lib/site.ts           ← helpers derived from the config (links, hours, site URL)
   lib/seo.ts            ← page metadata and JSON-LD helpers
+  lib/booking/          ← online booking: slots, database, tokens, emails (Pro)
+  app/admin/            ← clinic admin dashboard (Pro)
+  app/api/booking/      ← booking API routes (Pro)
+db/migrations/          ← SQL for the booking tables (`npm run db:migrate`)
 public/images/          ← photos + CREDITS.md
 ```
 

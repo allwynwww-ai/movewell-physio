@@ -7,12 +7,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "dependencies": {
     "next": "16.3.1",
+    "postgres": "^4.0.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
