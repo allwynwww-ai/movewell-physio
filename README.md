@@ -1,4 +1,4 @@
-# Physiotherapy Clinic Website (Basic plan)
+# Physiotherapy Clinic Website (Basic + Pro)
 
 A fast, mobile-first website template for physiotherapy clinics in India. One file —
 `src/site.config.ts` — holds every clinic detail (name, contact, address, hours, services,
@@ -33,15 +33,24 @@ zero configuration.
 - Light/dark mode, accessible navigation, `prefers-reduced-motion` support
 - Optimised local images with a credits file (`public/images/CREDITS.md`)
 
-### Pro — online booking available (off by default), rest planned
+### Pro — available now
 
-- **Online appointment booking** — live calendar of free slots, instant confirmation,
-  calendar invite (.ics), patient self-service cancel/reschedule, clinic admin at `/admin`.
-  See [Online booking (Pro)](#online-booking-pro) below.
-- Google reviews integration
-- Multiple therapists with individual profiles
-- Analytics (privacy-friendly) and conversion tracking
-- Blog / exercise library
+Each Pro feature has its own switch, so a clinic gets exactly what it pays for.
+
+- **Online appointment booking** (off by default) — live calendar of free slots, instant
+  confirmation, calendar invite (.ics), patient self-service cancel/reschedule, clinic admin at
+  `/admin`. See [Online booking (Pro)](#online-booking-pro).
+- **Google reviews badge** — "Rated 4.8 on Google · 120 reviews" on Home, plus a small badge on
+  Contact and in the footer, linking to the clinic's Google listing. Figures are entered by hand
+  (no Google API key or billing).
+- **Therapist profiles** — a `/team` page and a "Meet our team" section on Home. Works with one
+  therapist or many; initials avatar when there is no photo.
+- **Vercel Web Analytics** — cookie-free page views plus click events for Book, Call and
+  WhatsApp. Never loaded on `/admin`.
+- **Exercise library** — `/exercises` with a body-area filter and a page per exercise
+  (steps, sets/reps, tips, safety note, Book button). No blog.
+
+See [Pro extras](#pro-extras-reviews-team-analytics-exercises) for setup.
 
 ### Premium — planned
 
@@ -50,8 +59,7 @@ zero configuration.
 - Patient reminders (WhatsApp / SMS / email)
 - Custom design and copywriting
 
-The `features` block in `site.config.ts` reserves flags for these; they have no effect in the
-Basic plan.
+The `features` block in `site.config.ts` reserves flags for these; they have no effect yet.
 
 ---
 
@@ -222,6 +230,106 @@ Not included: Google Calendar sync, online payments, WhatsApp reminders.
 
 ---
 
+## Pro extras (reviews, team, analytics, exercises)
+
+### Switches (`src/site.config.ts` → `features`)
+
+| Switch            | Default (demo) | Env override (optional)    | What it controls                                   |
+| ----------------- | -------------- | -------------------------- | -------------------------------------------------- |
+| `googleReviews`   | `true`         | `FEATURE_GOOGLE_REVIEWS`   | Rating section on Home, badge on Contact + footer  |
+| `therapists`      | `true`         | `FEATURE_THERAPISTS`       | `/team` page, "Meet our team" on Home, nav link    |
+| `analytics`       | `true`         | `FEATURE_ANALYTICS`        | Vercel Web Analytics + Book/Call/WhatsApp events   |
+| `exerciseLibrary` | `true`         | `FEATURE_EXERCISE_LIBRARY` | `/exercises`, `/exercises/[slug]`, nav link        |
+
+- Set a switch to `false` for a Basic clinic. A switched-off feature is **fully hidden**: no
+  nav or footer links, no sitemap entries, and its pages return 404.
+- An env var (`true` / `false`) wins over the config file, so one codebase can serve several
+  clinics. Pages are pre-built, so **redeploy** after changing a switch or env var.
+
+### Google reviews (`googleReviews`)
+
+Copy the numbers by hand from the clinic's Google Business Profile and update them every month
+or two:
+
+```ts
+googleReviews: {
+  rating: 4.8,          // 1–5
+  reviewCount: 120,
+  url: "https://g.page/r/XXXX/review", // the clinic's Google listing or review link (https)
+  isSample: false,      // true shows a "Sample rating" label while showSampleNotice is on
+},
+```
+
+- Rating, count and URL set → full badge "Rated 4.8 on Google · 120 reviews" with
+  "See our reviews on Google".
+- Only `url` set (remove `rating` and `reviewCount`) → a simple "Find us on Google" link.
+- `reviewCount: 0`, rating 0 or missing data → nothing is shown.
+- No `AggregateRating` structured data is added: Google does not show review stars for a
+  business's own reviews about itself, and copied ratings can go out of date.
+
+### Team (`team`)
+
+```ts
+team: {
+  heading: "Meet our team",
+  intro: "…",
+  homeLimit: 3,         // how many cards Home shows (max 4); the rest are on /team
+  members: [
+    {
+      slug: "priya-sharma",           // unique, used as /team#priya-sharma
+      name: "Dr. Priya Sharma (PT)",
+      title: "Senior Physiotherapist",
+      qualifications: "BPT, MPT (Ortho)",          // optional
+      photo: "/images/team/priya.jpg",              // optional — initials avatar if missing
+      photoAlt: "Dr. Priya Sharma",                 // optional
+      specialties: ["Back pain", "Sports injuries"],
+      languages: ["English", "Hindi"],              // optional
+      yearsExperience: 8,                           // optional
+      bio: "Two or three sentences…",
+    },
+  ],
+},
+```
+
+Put photos in `public/images/team/` (square, at least 400×400) and list them in
+`public/images/CREDITS.md`. The About page keeps using the separate `therapists` entry (the lead
+therapist). Booking does not ask patients to choose a therapist.
+
+### Exercise library (`src/content/exercises.ts`)
+
+Each exercise is one object in that file: `slug`, `title`, `bodyArea` (Knee, Back, Neck,
+Shoulder, Ankle, Hip), `difficulty`, `summary`, optional `equipment`, `steps`, `dosage`
+(`sets`, `reps`, `hold`, `frequency`) and `tips`. The filter chips are built from the body areas
+in use. Every page shows the same safety note (`EXERCISE_DISCLAIMER`). Keep wording general
+("may help you move more comfortably"), not promises to cure a condition, and have a
+physiotherapist review any new exercise. The pictures are simple line icons drawn in code, so
+no image licences are needed.
+
+### Analytics (Vercel Web Analytics)
+
+What the code does when `analytics` is on:
+
+- Adds `<Analytics />` from `@vercel/analytics` to every public page. It is cookie-free, so no
+  cookie banner is needed.
+- Sends click events **Book click**, **Call click** (`tel:` links) and **WhatsApp click**, each
+  with `location` (header, footer, mobile-bar, whatsapp-float, home…) and `page`.
+- Never loads on `/admin` or on patients' private `/book/manage/…` links, and drops any event
+  from those paths.
+
+**Owner setup (one time, in Vercel):**
+
+1. Vercel dashboard → the project → **Analytics** tab → **Enable**. Nothing is collected until
+   this is done.
+2. Redeploy. Vercel then serves the script at `/_vercel/insights/*`.
+3. Page views work on every plan (Hobby includes 50,000 events a month). **Custom events (the
+   Book/Call/WhatsApp clicks) need a Vercel Pro or Enterprise plan.** On Hobby the clicks are
+   simply not recorded. On Pro they appear under Analytics → Events. Each event sends two
+   properties (`location`, `page`), which is the Pro limit.
+
+Locally and on non-Vercel hosts the script is not served, so nothing is tracked.
+
+---
+
 ## Go-live checklist
 
 - [ ] Clinic name, phone, WhatsApp, email and address are correct (`isDemoNumber: false`)
@@ -241,6 +349,8 @@ Not included: Google Calendar sync, online payments, WhatsApp reminders.
 - [ ] `npm run lint` and `npm run build` pass
 - [ ] Site tested on a phone, in light and dark mode
 - [ ] Google Business Profile links to the new site
+- [ ] Pro extras: switches set for this clinic's plan; Google rating/count/URL copied from
+      the real listing (`isSample: false`); demo team replaced; Web Analytics enabled in Vercel
 
 ---
 
@@ -249,11 +359,14 @@ Not included: Google Calendar sync, online payments, WhatsApp reminders.
 ```
 src/
   site.config.ts        ← all clinic data (edit this)
-  app/                  ← pages (/, /about, /services, /testimonials, /book, /contact, /privacy, /terms)
+  app/                  ← pages (/, /about, /services, /team, /exercises, /testimonials, /book, /contact, /privacy, /terms)
     sitemap.ts, robots.ts, opengraph-image.tsx, twitter-image.tsx
   components/           ← header, footer, booking form, carousel, etc.
   lib/site.ts           ← helpers derived from the config (links, hours, site URL)
   lib/seo.ts            ← page metadata and JSON-LD helpers
+  lib/features.ts       ← Pro feature switches, nav links, reviews/team helpers
+  content/exercises.ts  ← exercise library content (Pro)
+  components/analytics/ ← Vercel Analytics + click events (Pro)
   lib/booking/          ← online booking: slots, database, tokens, emails (Pro)
   app/admin/            ← clinic admin dashboard (Pro)
   app/api/booking/      ← booking API routes (Pro)
