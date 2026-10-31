@@ -71,6 +71,10 @@ export default function SmoothScroll() {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return;
 
+        // Links that change the query string (e.g. /admin?view=upcoming) are real
+        // navigations: let Next.js handle them instead of treating them as in-page.
+        if (url.pathname === window.location.pathname && url.search !== window.location.search) return;
+
         // In-page hash (footer service anchors, etc.)
         if (url.pathname === window.location.pathname && url.hash) {
           e.preventDefault();

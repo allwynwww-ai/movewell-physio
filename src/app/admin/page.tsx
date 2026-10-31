@@ -319,12 +319,13 @@ export default async function AdminPage({
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
         <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div id="appointments" className="scroll-mt-24 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <nav className="flex gap-1 overflow-x-auto rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-1" aria-label="Views">
               {VIEWS.map((v) => (
                 <Link
                   key={v.id}
                   href={`/admin?${new URLSearchParams({ view: v.id, ...(q ? { q } : {}) })}`}
+                  scroll={false}
                   aria-current={v.id === view ? "page" : undefined}
                   className={`min-h-10 md:min-h-8 flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                     v.id === view
@@ -336,7 +337,7 @@ export default async function AdminPage({
                 </Link>
               ))}
             </nav>
-            <form action="/admin" method="get" className="flex gap-2" role="search">
+            <form action="/admin#appointments" method="get" className="flex gap-2" role="search">
               <input type="hidden" name="view" value={view} />
               <input name="q" defaultValue={q} placeholder="Search name, phone, email or ref" aria-label="Search" className={`${input} sm:w-60`} />
               <button type="submit" className="premium-btn premium-btn-primary px-4 py-2 text-sm">
