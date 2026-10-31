@@ -23,6 +23,14 @@ export type Exercise = {
   /** Sets / reps / hold — e.g. { sets: "2–3", reps: "10", hold: "5 seconds" } */
   dosage: { sets?: string; reps?: string; hold?: string; frequency?: string };
   tips: string[];
+  /**
+   * Optional picture shown on the exercise page and list card (Start / End
+   * positions). Put the file in /public and set `src`, e.g.
+   * "/images/exercises/heel-slides.webp". Without it, a simple line icon is shown.
+   * `width`/`height` are the file's pixel size (default 1280×720, 16:9).
+   * `og` is an optional JPG/PNG for link previews (WhatsApp, Facebook); `src` is used if not set.
+   */
+  image?: { src: string; alt: string; width?: number; height?: number; og?: string };
 };
 
 /** Shown on every exercise page and the list page. */
@@ -32,6 +40,11 @@ export const EXERCISE_DISCLAIMER =
 export const exercises: Exercise[] = [
   {
     slug: "heel-slides",
+    image: {
+      src: "/images/exercises/heel-slides.webp",
+      og: "/images/exercises/og/heel-slides.jpg",
+      alt: "Heel slides: start lying flat on a mat with both legs straight; end with one knee bent and the heel slid towards the buttocks",
+    },
     title: "Heel Slides",
     bodyArea: "Knee",
     difficulty: "Beginner",
@@ -52,6 +65,11 @@ export const exercises: Exercise[] = [
   },
   {
     slug: "cat-camel",
+    image: {
+      src: "/images/exercises/cat-camel.webp",
+      og: "/images/exercises/og/cat-camel.jpg",
+      alt: "Cat-camel stretch: start on hands and knees with the back gently rounded up and head lowered; end with the back gently dipped and head lifted",
+    },
     title: "Cat–Camel Stretch",
     bodyArea: "Back",
     difficulty: "Beginner",
@@ -72,6 +90,11 @@ export const exercises: Exercise[] = [
   },
   {
     slug: "chin-tucks",
+    image: {
+      src: "/images/exercises/chin-tucks.webp",
+      og: "/images/exercises/og/chin-tucks.jpg",
+      alt: "Chin tucks: start sitting upright on a chair looking forward; end with the chin drawn straight back, keeping the eyes level",
+    },
     title: "Chin Tucks",
     bodyArea: "Neck",
     difficulty: "Beginner",
@@ -92,6 +115,11 @@ export const exercises: Exercise[] = [
   },
   {
     slug: "pendulum-swings",
+    image: {
+      src: "/images/exercises/pendulum-swings.webp",
+      og: "/images/exercises/og/pendulum-swings.jpg",
+      alt: "Pendulum swings: start leaning forward with one hand on a table and the other arm hanging down; end with the hanging arm swinging in small, relaxed circles",
+    },
     title: "Pendulum Swings",
     bodyArea: "Shoulder",
     difficulty: "Beginner",
@@ -111,6 +139,11 @@ export const exercises: Exercise[] = [
   },
   {
     slug: "ankle-alphabet",
+    image: {
+      src: "/images/exercises/ankle-alphabet.webp",
+      og: "/images/exercises/og/ankle-alphabet.jpg",
+      alt: "Ankle alphabet: start seated with the leg resting on a cushion on a stool; end tracing a letter of the alphabet in the air with the toes",
+    },
     title: "Ankle Alphabet",
     bodyArea: "Ankle",
     difficulty: "Beginner",
@@ -131,6 +164,9 @@ export const exercises: Exercise[] = [
 ];
 
 export const BODY_AREAS: BodyArea[] = Array.from(new Set(exercises.map((e) => e.bodyArea)));
+
+/** Default pixel size of the bundled illustrations. */
+export const EXERCISE_IMAGE_SIZE = { width: 1280, height: 720 };
 
 export function getExercise(slug: string): Exercise | undefined {
   return exercises.find((e) => e.slug === slug);

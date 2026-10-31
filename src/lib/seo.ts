@@ -10,10 +10,12 @@ type PageMetaInput = {
   /** Route path, e.g. "/about" */
   path: string;
   noIndex?: boolean;
+  /** Page-specific share image (e.g. an exercise illustration); defaults to the generated one. */
+  image?: { url: string; width?: number; height?: number; alt: string };
 };
 
 /** Per-page metadata with canonical URL, Open Graph and Twitter tags from site.config.ts */
-export function pageMetadata({ title, description, path, noIndex }: PageMetaInput): Metadata {
+export function pageMetadata({ title, description, path, noIndex, image }: PageMetaInput): Metadata {
   const desc = description ?? siteConfig.seo.defaultDescription;
   const fullTitle = title
     ? siteConfig.seo.titleTemplate.replace("%s", title)
@@ -32,13 +34,15 @@ export function pageMetadata({ title, description, path, noIndex }: PageMetaInpu
       description: desc,
       // A page-level openGraph object replaces the inherited one, so the
       // generated share image (app/opengraph-image.tsx) is referenced explicitly.
-      images: [{ url: "/opengraph-image", width: ogSize.width, height: ogSize.height, alt: ogAlt }],
+      images: image
+        ? [image]
+        : [{ url: "/opengraph-image", width: ogSize.width, height: ogSize.height, alt: ogAlt }],
     },
     twitter: {
       card: "summary_large_image",
       title: fullTitle,
       description: desc,
-      images: [{ url: "/twitter-image", alt: ogAlt }],
+      images: image ? [{ url: image.url, alt: image.alt }] : [{ url: "/twitter-image", alt: ogAlt }],
       ...(siteConfig.seo.twitterHandle
         ? { site: siteConfig.seo.twitterHandle, creator: siteConfig.seo.twitterHandle }
         : {}),

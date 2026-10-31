@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import BodyAreaIcon from "@/components/exercises/BodyAreaIcon";
 import ExerciseDisclaimer from "@/components/exercises/ExerciseDisclaimer";
-import { exercises, getExercise } from "@/content/exercises";
+import ExerciseImage from "@/components/exercises/ExerciseImage";
+import { EXERCISE_IMAGE_SIZE, exercises, getExercise } from "@/content/exercises";
 import { isFeatureOn } from "@/lib/features";
 import { whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
@@ -25,6 +26,17 @@ export async function generateMetadata({ params }: Props) {
     title: `${ex.title} – ${ex.bodyArea} exercise`,
     description: ex.summary,
     path: `/exercises/${ex.slug}`,
+    // Share preview uses the illustration (the JPG `og` copy when given, as some apps skip WebP).
+    image: ex.image
+      ? ex.image.og
+        ? { url: ex.image.og, alt: ex.image.alt }
+        : {
+            url: ex.image.src,
+            width: ex.image.width ?? EXERCISE_IMAGE_SIZE.width,
+            height: ex.image.height ?? EXERCISE_IMAGE_SIZE.height,
+            alt: ex.image.alt,
+          }
+      : undefined,
   });
 }
 
@@ -51,9 +63,11 @@ export default async function ExercisePage({ params }: Props) {
             </Link>
           </nav>
           <div className="flex items-start gap-4 sm:gap-5">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center">
-              <BodyAreaIcon area={ex.bodyArea} className="w-8 h-8 sm:w-9 sm:h-9" />
-            </div>
+            {!ex.image && (
+              <div data-testid="exercise-icon" className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center">
+                <BodyAreaIcon area={ex.bodyArea} className="w-8 h-8 sm:w-9 sm:h-9" />
+              </div>
+            )}
             <div className="min-w-0">
               <div className="flex flex-wrap gap-1.5 mb-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-muted)]">
@@ -72,6 +86,7 @@ export default async function ExercisePage({ params }: Props) {
 
       <section className="py-10 md:py-14 bg-[var(--color-bg)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          {ex.image && <ExerciseImage image={ex.image} />}
           <ExerciseDisclaimer />
 
           {dosage.length > 0 && (

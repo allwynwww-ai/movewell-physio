@@ -302,8 +302,25 @@ Shoulder, Ankle, Hip), `difficulty`, `summary`, optional `equipment`, `steps`, `
 (`sets`, `reps`, `hold`, `frequency`) and `tips`. The filter chips are built from the body areas
 in use. Every page shows the same safety note (`EXERCISE_DISCLAIMER`). Keep wording general
 ("may help you move more comfortably"), not promises to cure a condition, and have a
-physiotherapist review any new exercise. The pictures are simple line icons drawn in code, so
-no image licences are needed.
+physiotherapist review any new exercise.
+
+**Pictures.** Each sample exercise has an original two-panel "Start / End" illustration created
+for this project (`public/images/exercises/<slug>.webp`, 1280×720, plus a small JPG copy in
+`public/images/exercises/og/` used for WhatsApp/Facebook link previews). It is shown large on the
+exercise page and as the card image on `/exercises`. To use the clinic's own photo, drop the file
+in `public/images/exercises/` and change the exercise's `image`:
+
+```ts
+image: {
+  src: "/images/exercises/heel-slides-clinic.jpg",
+  alt: "Heel slides: start lying flat with legs straight; end with one knee bent", // describe both positions
+  width: 1600, height: 900,                // the photo's real pixel size (16:9 looks best)
+  og: "/images/exercises/heel-slides-clinic.jpg", // optional share image (JPG/PNG)
+},
+```
+
+Remove `image` and the page falls back to a simple line icon drawn in code. List any new photo in
+`public/images/CREDITS.md`.
 
 ### Analytics (Vercel Web Analytics)
 

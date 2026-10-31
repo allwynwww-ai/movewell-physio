@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import ExerciseImage from "./ExerciseImage";
 import BodyAreaIcon from "@/components/exercises/BodyAreaIcon";
 import { areaId, type BodyArea, type Exercise } from "@/content/exercises";
 
@@ -55,28 +56,33 @@ export default function ExerciseBrowser({ exercises, areas }: Props) {
       <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {shown.map((ex) => (
           <li key={ex.slug} data-testid="exercise-card" data-area={areaId(ex.bodyArea)}>
-            <Link href={`/exercises/${ex.slug}`} className="premium-card p-6 flex flex-col h-full group">
-              <div className="flex items-start justify-between gap-3 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center">
-                  <BodyAreaIcon area={ex.bodyArea} className="w-7 h-7" />
+            <Link href={`/exercises/${ex.slug}`} className="premium-card overflow-hidden flex flex-col h-full group">
+              {ex.image && <ExerciseImage image={ex.image} variant="thumb" />}
+              <div className="p-6 flex flex-col flex-1">
+                <div className={`flex items-start gap-3 mb-5 ${ex.image ? "justify-start" : "justify-between"}`}>
+                  {!ex.image && (
+                    <div data-testid="exercise-icon" className="w-12 h-12 rounded-xl bg-[var(--color-light-teal)] text-[var(--color-primary)] flex items-center justify-center">
+                      <BodyAreaIcon area={ex.bodyArea} className="w-7 h-7" />
+                    </div>
+                  )}
+                  <div className={`flex flex-wrap gap-1.5 ${ex.image ? "justify-start" : "justify-end"}`}>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-muted)]">
+                      {ex.bodyArea}
+                    </span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-soft-coral)] text-[var(--color-cta)]">
+                      {ex.difficulty}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap justify-end gap-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-muted)]">
-                    {ex.bodyArea}
-                  </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-soft-coral)] text-[var(--color-cta)]">
-                    {ex.difficulty}
-                  </span>
-                </div>
+                <h2 className="text-lg font-semibold text-[var(--color-secondary)] tracking-tight mb-2">{ex.title}</h2>
+                <p className="text-sm text-[var(--color-text-muted)] leading-relaxed mb-5">{ex.summary}</p>
+                <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] group-hover:gap-2 transition-all">
+                  View steps
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </span>
               </div>
-              <h2 className="text-lg font-semibold text-[var(--color-secondary)] tracking-tight mb-2">{ex.title}</h2>
-              <p className="text-sm text-[var(--color-text-muted)] leading-relaxed mb-5">{ex.summary}</p>
-              <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] group-hover:gap-2 transition-all">
-                View steps
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </span>
             </Link>
           </li>
         ))}
