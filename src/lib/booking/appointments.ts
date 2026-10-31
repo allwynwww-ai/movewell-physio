@@ -13,7 +13,6 @@ import {
   holidayOn,
   isValidDateKey,
   isValidTime,
-  startOfWeek,
   todayKey,
   zonedToUtc,
 } from "./time";
@@ -319,10 +318,14 @@ export async function setStatus(id: string, status: Exclude<AppointmentStatus, "
 }
 
 /**
- * today    – every booking on today's date (IST), any status
- * upcoming – bookings that haven't started yet (soonest first)
- * week     – today + next 6 days (IST), not cancelled – matches the Week calendar
- * past     – bookings that have already started, newest first (incl. earlier today)
+ * The action lists (today / upcoming / week) only show bookings that still
+ * need something from the clinic: status pending or confirmed. Done, no-show
+ * and cancelled bookings drop off them and stay visible under Past / All / Report.
+ *
+ * today    – today's (IST) pending/confirmed bookings, all day (even once their time has passed)
+ * upcoming – pending/confirmed bookings that haven't started yet (soonest first)
+ * week     – today + next 6 days (IST), pending/confirmed – matches the Week calendar and 7-day strip
+ * past     – bookings that have already started, any status, newest first (incl. earlier today)
  * all      – everything, newest first
  */
 export type ListScope = "today" | "upcoming" | "week" | "past" | "all";
@@ -334,21 +337,16 @@ export async function listAppointments(scope: ListScope, q = ""): Promise<Appoin
   const dayEnd = zonedToUtc(addDays(today, 1), "00:00");
   const weekEnd = zonedToUtc(addDays(today, 7), "00:00");
   const now = new Date();
-  const term = q.trim().slice(0, 80);
-  const like = "%" + term.replace(/[%_\\]/g, "\\$&") + "%";
-  const digits = term.replace(/\D/g, "");
-  const search = term
-    ? sql`AND (name ILIKE ${like} OR ref ILIKE ${like} OR email ILIKE ${like}
-          ${digits.length >= 3 ? sql`OR regexp_replace(phone, '\\D', '', 'g') LIKE ${"%" + digits + "%"}` : sql``})`
-    : sql``;
+  const search = searchClause(sql, q);
+  const active = sql`AND status IN ('pending', 'confirmed')`;
 
   let rows: Row[];
   if (scope === "today") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${search} ORDER BY starts_at, (status = 'cancelled'), ref`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${active} ${search} ORDER BY starts_at, ref`;
   } else if (scope === "upcoming") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${now} ${search} ORDER BY starts_at, (status = 'cancelled'), ref LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${now} ${active} ${search} ORDER BY starts_at, ref LIMIT 500`;
   } else if (scope === "week") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${weekEnd} AND status <> 'cancelled' ${search} ORDER BY starts_at, (status = 'cancelled'), ref LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${weekEnd} ${active} ${search} ORDER BY starts_at, ref LIMIT 500`;
   } else if (scope === "past") {
     rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at < ${now} ${search} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 500`;
   } else {
@@ -357,9 +355,25 @@ export async function listAppointments(scope: ListScope, q = ""): Promise<Appoin
   return rows.map(toAppointment);
 }
 
+type Sql = Awaited<ReturnType<typeof db>>;
+
+/** Name / ref / email / phone-digits search fragment (parameterised). */
+function searchClause(sql: Sql, q: string) {
+  const term = q.trim().slice(0, 80);
+  if (!term) return sql``;
+  const like = "%" + term.replace(/[%_\\]/g, "\\$&") + "%";
+  const digits = term.replace(/\D/g, "");
+  return sql`AND (name ILIKE ${like} OR ref ILIKE ${like} OR email ILIKE ${like}
+          ${digits.length >= 3 ? sql`OR regexp_replace(phone, '\\D', '', 'g') LIKE ${"%" + digits + "%"}` : sql``})`;
+}
+
 export type AdminStats = {
+  /** Today's bookings still to see (pending/confirmed) – matches the Today tab. */
   today: number;
-  thisWeek: number;
+  todayDone: number;
+  todayNoShow: number;
+  /** Pending/confirmed bookings from today to today+6 (IST) – matches the Week tab and strip. */
+  next7Days: number;
   upcoming: number;
   pending: number;
   noShowRate: number | null;
@@ -371,25 +385,27 @@ export type AdminStats = {
 export async function getStats(): Promise<AdminStats> {
   const sql = await db();
   const today = todayKey();
-  const weekStart = startOfWeek(today);
-  const weekEnd = addDays(weekStart, 7);
+  const dayStart = zonedToUtc(today, "00:00");
+  const dayEnd = zonedToUtc(addDays(today, 1), "00:00");
+  const weekEnd = zonedToUtc(addDays(today, 7), "00:00");
   const [row] = await sql<
-    { today: number; this_week: number; upcoming: number; pending: number; no_shows: number; attended: number }[]
+    { today: number; today_done: number; today_no_show: number; next7: number; upcoming: number; pending: number; no_shows: number; attended: number }[]
   >`
     SELECT
-      count(*) FILTER (WHERE status <> 'cancelled' AND starts_at >= ${zonedToUtc(today, "00:00")} AND starts_at < ${zonedToUtc(addDays(today, 1), "00:00")})::int AS today,
-      count(*) FILTER (WHERE status <> 'cancelled' AND starts_at >= ${zonedToUtc(weekStart, "00:00")} AND starts_at < ${zonedToUtc(weekEnd, "00:00")})::int AS this_week,
+      count(*) FILTER (WHERE status IN ('pending', 'confirmed') AND starts_at >= ${dayStart} AND starts_at < ${dayEnd})::int AS today,
+      count(*) FILTER (WHERE status = 'completed' AND starts_at >= ${dayStart} AND starts_at < ${dayEnd})::int AS today_done,
+      count(*) FILTER (WHERE status = 'no_show' AND starts_at >= ${dayStart} AND starts_at < ${dayEnd})::int AS today_no_show,
+      count(*) FILTER (WHERE status IN ('pending', 'confirmed') AND starts_at >= ${dayStart} AND starts_at < ${weekEnd})::int AS next7,
       count(*) FILTER (WHERE status IN ('pending', 'confirmed') AND starts_at >= now())::int AS upcoming,
       count(*) FILTER (WHERE status = 'pending' AND starts_at >= now())::int AS pending,
       count(*) FILTER (WHERE status = 'no_show' AND starts_at >= now() - interval '90 days')::int AS no_shows,
       count(*) FILTER (WHERE status = 'completed' AND starts_at >= now() - interval '90 days')::int AS attended
     FROM appointments`;
 
-  // Next 7 days, for the week-at-a-glance strip.
-  const end = addDays(today, 7);
+  // Next 7 days, for the week-at-a-glance strip (same rule as the Week tab).
   const perDay = await sql<{ starts_at: Date }[]>`
     SELECT starts_at FROM appointments
-    WHERE status <> 'cancelled' AND starts_at >= ${zonedToUtc(today, "00:00")} AND starts_at < ${zonedToUtc(end, "00:00")}`;
+    WHERE status IN ('pending', 'confirmed') AND starts_at >= ${dayStart} AND starts_at < ${weekEnd}`;
   const counts = new Map<string, number>();
   for (const r of perDay) {
     const k = dateKeyOf(new Date(r.starts_at));
@@ -403,7 +419,9 @@ export async function getStats(): Promise<AdminStats> {
   const finished = row.no_shows + row.attended;
   return {
     today: row.today,
-    thisWeek: row.this_week,
+    todayDone: row.today_done,
+    todayNoShow: row.today_no_show,
+    next7Days: row.next7,
     upcoming: row.upcoming,
     pending: row.pending,
     noShows: row.no_shows,
@@ -411,6 +429,78 @@ export async function getStats(): Promise<AdminStats> {
     noShowRate: finished ? row.no_shows / finished : null,
     week,
   };
+}
+
+/* ── Report (date range, IST) ─────────────────────────────────────────── */
+
+export const ALL_STATUSES: AppointmentStatus[] = ["completed", "no_show", "cancelled", "pending", "confirmed"];
+
+export type ServiceReport = {
+  serviceId: string;
+  serviceName: string;
+  total: number;
+  completed: number;
+  noShow: number;
+  cancelled: number;
+};
+
+export type AdminReport = {
+  counts: Record<AppointmentStatus, number>;
+  total: number;
+  /** no_show / (no_show + completed), null when neither happened. */
+  noShowRate: number | null;
+  services: ServiceReport[];
+};
+
+/** Instants covering the IST dates from..to inclusive. */
+function rangeBounds(fromKey: string, toKey: string) {
+  return { start: zonedToUtc(fromKey, "00:00"), end: zonedToUtc(addDays(toKey, 1), "00:00") };
+}
+
+export async function getReport(fromKey: string, toKey: string): Promise<AdminReport> {
+  const sql = await db();
+  const { start, end } = rangeBounds(fromKey, toKey);
+  const rows = await sql<{ service_id: string; service_name: string; status: AppointmentStatus; n: number }[]>`
+    SELECT service_id, max(service_name) AS service_name, status, count(*)::int AS n
+    FROM appointments
+    WHERE starts_at >= ${start} AND starts_at < ${end}
+    GROUP BY service_id, status`;
+  const counts = Object.fromEntries(ALL_STATUSES.map((s) => [s, 0])) as Record<AppointmentStatus, number>;
+  const services = new Map<string, ServiceReport>();
+  for (const r of rows) {
+    counts[r.status] = (counts[r.status] ?? 0) + r.n;
+    const s = services.get(r.service_id) ?? { serviceId: r.service_id, serviceName: r.service_name, total: 0, completed: 0, noShow: 0, cancelled: 0 };
+    s.total += r.n;
+    if (r.status === "completed") s.completed += r.n;
+    if (r.status === "no_show") s.noShow += r.n;
+    if (r.status === "cancelled") s.cancelled += r.n;
+    services.set(r.service_id, s);
+  }
+  const finished = counts.no_show + counts.completed;
+  return {
+    counts,
+    total: ALL_STATUSES.reduce((n, s) => n + counts[s], 0),
+    noShowRate: finished ? counts.no_show / finished : null,
+    services: [...services.values()].sort((a, b) => b.total - a.total || a.serviceName.localeCompare(b.serviceName)),
+  };
+}
+
+/** Every appointment starting on IST dates from..to, optionally one status, by start time. */
+export async function listReportAppointments(
+  fromKey: string,
+  toKey: string,
+  status: AppointmentStatus | null,
+  limit = 2000,
+): Promise<Appointment[]> {
+  const sql = await db();
+  const { start, end } = rangeBounds(fromKey, toKey);
+  const rows = await sql<Row[]>`
+    SELECT * FROM appointments
+    WHERE starts_at >= ${start} AND starts_at < ${end}
+      ${status ? sql`AND status = ${status}` : sql``}
+    ORDER BY starts_at, (status = 'cancelled'), ref
+    LIMIT ${limit}`;
+  return rows.map(toAppointment);
 }
 
 export async function listBlockedDays(): Promise<{ day: string; reason: string; bookings: number }[]> {
