@@ -13,6 +13,20 @@ what licence allows commercial use, don't ship it.
 | `clinic-1.jpg` | 1280×720 | Therapist supporting an older patient with a balance exercise | AI-generated for this template (Grok Bot image generation, 30 Oct 2026) | Generated placeholder. Replace with real clinic photos. |
 | `clinic-2.jpg` | 1280×720 | Empty rehabilitation room | AI-generated for this template (Grok Bot image generation, 30 Oct 2026) | Generated placeholder. Replace with real clinic photos. |
 
+### Exercise illustrations
+
+| File | Size | What it shows | Source | Licence / status |
+|------|------|---------------|--------|------------------|
+| `exercises/heel-slides.webp` | 1280×720 | Heel slides – start and end positions (two panels) | Original artwork created for this project (generated, 31 Oct 2026) | Owned by the project; no third-party licence. |
+| `exercises/cat-camel.webp` | 1280×720 | Cat-camel stretch – start and end positions | Original artwork created for this project (generated, 31 Oct 2026) | Owned by the project; no third-party licence. |
+| `exercises/chin-tucks.webp` | 1280×720 | Chin tucks – start and end positions | Original artwork created for this project (generated, 31 Oct 2026) | Owned by the project; no third-party licence. |
+| `exercises/pendulum-swings.webp` | 1280×720 | Pendulum swings – start and end positions | Original artwork created for this project (generated, 31 Oct 2026) | Owned by the project; no third-party licence. |
+| `exercises/ankle-alphabet.webp` | 1280×720 | Ankle alphabet – start and end positions | Original artwork created for this project (generated, 31 Oct 2026) | Owned by the project; no third-party licence. |
+| `exercises/og/*.jpg` | 1200×675 | JPG copies of the five illustrations above, for link previews | Same as above | Same as above |
+
+Illustrated figures, not real people. Clinics may swap them for their own photos (see README →
+Exercise library).
+
 Generated (not photographed) images are used so the template contains no third-party stock
 photos with unclear rights. Check the image tool's current terms if you plan to keep any of
 them on a paying client's site, and never present a generated person as a real staff member.

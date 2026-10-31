@@ -5,16 +5,10 @@ import { useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import { CLINIC_PHONE_DISPLAY, siteConfig, telLink, whatsappLink, WHATSAPP_MESSAGES } from "@/lib/site";
+import type { NavLink } from "@/lib/features";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/services", label: "Services" },
-  { href: "/testimonials", label: "Testimonials" },
-  { href: "/contact", label: "Contact" },
-];
-
-export default function Header() {
+/** Nav links come from the server layout (getNavLinks) so Pro pages appear only when switched on. */
+export default function Header({ navLinks }: { navLinks: NavLink[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (

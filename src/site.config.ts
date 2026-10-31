@@ -73,6 +73,27 @@ export type Therapist = {
   photoAlt: string;
 };
 
+/** One person on the /team page (Pro — features.therapists). */
+export type TeamMember = {
+  /** URL-safe id, unique, e.g. "jane-doe". Used as the anchor on /team (/team#jane-doe). */
+  slug: string;
+  name: string;
+  /** Role, e.g. "Senior Physiotherapist" */
+  title: string;
+  /** Short qualifications line, e.g. "BPT, MPT (Sports)" */
+  qualifications?: string;
+  /** Optional photo in /public, e.g. "/images/team/jane.jpg". Leave out to show an initials avatar. */
+  photo?: string;
+  photoAlt?: string;
+  specialties: string[];
+  /** Optional, e.g. ["English", "Hindi"] */
+  languages?: string[];
+  /** Optional whole number */
+  yearsExperience?: number;
+  /** 1–3 sentences */
+  bio: string;
+};
+
 export type Service = {
   id: string;
   name: string;
@@ -137,7 +158,21 @@ export const siteConfig = {
     calendar: false,
     blog: false,
     multiLocation: false,
-    analytics: false,
+
+    /*
+     * PRO extras — each switch fully adds or removes the feature: when off there
+     * are no nav links, no home-page sections, no sitemap entries and the pages
+     * return 404. Each can also be overridden per deployment with an env var
+     * ("true"/"false"), which wins when set — see README → "Pro extras".
+     */
+    /** Google rating badge on Home / Contact / footer (settings in `googleReviews` below). Env: FEATURE_GOOGLE_REVIEWS */
+    googleReviews: true,
+    /** Team profiles: /team page + "Meet our team" on Home (settings in `team` below). Env: FEATURE_THERAPISTS */
+    therapists: true,
+    /** Vercel Web Analytics + Book / Call / WhatsApp click events. Env: FEATURE_ANALYTICS */
+    analytics: true,
+    /** Exercise library at /exercises (content in src/content/exercises.ts). Env: FEATURE_EXERCISE_LIBRARY */
+    exerciseLibrary: true,
   },
 
   /**
@@ -289,6 +324,66 @@ export const siteConfig = {
       photoAlt: "Portrait of the clinic's physiotherapist (demo placeholder image)",
     },
   ] as Therapist[],
+
+  /* ── Team profiles (Pro — shown when features.therapists is on) ──────── */
+  team: {
+    heading: "Meet our team",
+    intro:
+      "Experienced, friendly physiotherapists who take the time to understand you and your goals.",
+    /** Home page shows the first `homeLimit` members with a link to /team. */
+    homeLimit: 3,
+    /** DEMO people — clearly placeholders. Replace with the clinic's real team. Works with 1 or many. */
+    members: [
+      {
+        slug: "jane-doe",
+        name: "Dr. Jane Doe (Demo)",
+        title: "Principal Physiotherapist",
+        qualifications: "BPT, MPT (Musculoskeletal)",
+        photo: "/images/therapist.jpg",
+        photoAlt: "Portrait of the clinic's physiotherapist (demo placeholder image)",
+        specialties: ["Back & neck pain", "Manual therapy", "Posture"],
+        languages: ["English", "Hindi"],
+        yearsExperience: 10,
+        bio: "Sample profile. Replace with a short introduction: experience, the patients they enjoy working with and their approach to care.",
+      },
+      {
+        slug: "alex-sample",
+        name: "Alex Sample (Demo)",
+        title: "Sports Physiotherapist",
+        qualifications: "BPT, MPT (Sports)",
+        specialties: ["Sports injuries", "Return to running", "Strength & conditioning"],
+        languages: ["English"],
+        yearsExperience: 6,
+        bio: "Sample profile for a second team member. No photo is set, so an initials avatar is shown instead.",
+      },
+      {
+        slug: "sam-placeholder",
+        name: "Sam Placeholder (Demo)",
+        title: "Physiotherapist",
+        qualifications: "BPT",
+        specialties: ["Post-surgical rehab", "Balance & falls prevention", "Older adults"],
+        languages: ["English", "Hindi", "Marathi"],
+        yearsExperience: 3,
+        bio: "Sample profile for a third team member. Replace the name, specialties and bio with real details.",
+      },
+    ] as TeamMember[],
+  },
+
+  /* ── Google reviews badge (Pro — shown when features.googleReviews is on) ── */
+  googleReviews: {
+    /**
+     * Copy these by hand from the clinic's Google Business Profile (no API key needed)
+     * and update them every month or two. Rating 1–5, e.g. 4.8.
+     * If rating or reviewCount is missing / 0, the badge is hidden; if only `url`
+     * is set, a plain "Find us on Google" link is shown instead.
+     */
+    rating: 4.8,
+    reviewCount: 120,
+    /** Link to the clinic's Google listing or "write a review" link (g.page/r/…/review). DEMO link. */
+    url: "https://www.google.com/maps/search/?api=1&query=physiotherapy+clinic",
+    /** true = demo figures. Shows a "Sample rating" label while showSampleNotice is on. */
+    isSample: true,
+  } as { rating?: number; reviewCount?: number; url?: string; isSample?: boolean },
 
   /* ── Page copy ───────────────────────────────────────────────────────── */
   hero: {

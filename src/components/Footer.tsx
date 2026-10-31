@@ -12,6 +12,8 @@ import {
   whatsappLink,
   WHATSAPP_MESSAGES,
 } from "@/lib/site";
+import { getTeam, isFeatureOn } from "@/lib/features";
+import { GoogleReviewsBadge } from "@/components/GoogleReviews";
 
 const socialLabels: Record<string, string> = {
   instagram: "Instagram",
@@ -24,6 +26,16 @@ const socialLabels: Record<string, string> = {
 export default function Footer() {
   const socials = Object.entries(siteConfig.social).filter(([, url]) => Boolean(url));
   const hours = getHoursRows();
+  const quickLinks = [
+    { href: "/", label: "Home" },
+    { href: "/about", label: "About" },
+    { href: "/services", label: "Services" },
+    ...(getTeam().length > 0 ? [{ href: "/team", label: "Our Team" }] : []),
+    ...(isFeatureOn("exerciseLibrary") ? [{ href: "/exercises", label: "Exercise Library" }] : []),
+    { href: "/testimonials", label: "Testimonials" },
+    { href: "/book", label: "Book Appointment" },
+    { href: "/contact", label: "Contact" },
+  ];
 
   return (
     <footer className="text-white" style={{ background: "var(--color-footer-bg)" }}>
@@ -34,6 +46,7 @@ export default function Footer() {
               <BrandLogo variant="footer" />
             </div>
             <p className="text-sm text-white/55 leading-relaxed">{siteConfig.brand.tagline}</p>
+            <GoogleReviewsBadge tone="dark" className="mt-4" />
             {socials.length > 0 && (
               <ul className="flex flex-wrap gap-3 mt-5">
                 {socials.map(([key, url]) => (
@@ -55,14 +68,7 @@ export default function Footer() {
           <div>
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40 mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
-              {[
-                { href: "/", label: "Home" },
-                { href: "/about", label: "About" },
-                { href: "/services", label: "Services" },
-                { href: "/testimonials", label: "Testimonials" },
-                { href: "/book", label: "Book Appointment" },
-                { href: "/contact", label: "Contact" },
-              ].map((link) => (
+              {quickLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-white/60 hover:text-white transition-colors">
                     {link.label}

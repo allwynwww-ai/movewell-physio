@@ -12,6 +12,9 @@ import {
   WHATSAPP_MESSAGES,
 } from "@/lib/site";
 import { faqJsonLd, jsonLdString, pageMetadata } from "@/lib/seo";
+import { GoogleReviewsSection } from "@/components/GoogleReviews";
+import TeamMemberCard from "@/components/TeamMemberCard";
+import { getTeam } from "@/lib/features";
 
 export const metadata = pageMetadata({ path: "/" });
 
@@ -19,6 +22,8 @@ const { hero, conditions, stats } = siteConfig;
 const therapist = primaryTherapist;
 
 export default function HomePage() {
+  const team = getTeam();
+  const homeTeam = team.slice(0, Math.max(1, Math.min(4, siteConfig.team.homeLimit || 3)));
   return (
     <>
       {/* Hero */}
@@ -146,6 +151,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Google rating (Pro — features.googleReviews) */}
+      <GoogleReviewsSection />
+
       {/* Services */}
       <section className="py-20 md:py-28 bg-premium-gradient">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -243,6 +251,38 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Meet our team (Pro — features.therapists) */}
+      {homeTeam.length > 0 && (
+        <section data-testid="home-team" className="py-20 md:py-24 bg-premium-gradient">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="section-label mb-3">Our team</p>
+              <h2 className="heading-display text-3xl md:text-4xl mb-4">{siteConfig.team.heading}</h2>
+              <p className="text-[var(--color-text-muted)] leading-relaxed">{siteConfig.team.intro}</p>
+            </div>
+            <div
+              className={`grid gap-5 ${
+                homeTeam.length === 1
+                  ? "max-w-md mx-auto"
+                  : homeTeam.length === 2
+                    ? "sm:grid-cols-2 max-w-3xl mx-auto"
+                    : homeTeam.length === 4
+                      ? "sm:grid-cols-2 lg:grid-cols-4"
+                      : "sm:grid-cols-2 lg:grid-cols-3"
+              }`}
+            >
+              {homeTeam.map((m) => (
+                <TeamMemberCard key={m.slug} member={m} variant="compact" />
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link href="/team" className="premium-btn premium-btn-secondary px-6 py-3 text-sm">
+                {team.length > homeTeam.length ? `Meet all ${team.length} team members` : "Meet the team"}
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <FAQ />
       <script

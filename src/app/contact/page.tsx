@@ -12,6 +12,7 @@ import {
   WHATSAPP_MESSAGES,
 } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
+import { GoogleReviewsBadge } from "@/components/GoogleReviews";
 
 export const metadata = pageMetadata({
   title: "Contact",
@@ -33,6 +34,7 @@ export default function ContactPage() {
           <p className="text-lg text-[var(--color-text-muted)] max-w-2xl">
             WhatsApp is the fastest way to reach us. You can also call, email, or book online.
           </p>
+          <GoogleReviewsBadge className="mt-4" />
         </div>
       </section>
 
