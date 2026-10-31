@@ -9,6 +9,8 @@ import MobileStickyBar from "@/components/MobileStickyBar";
 import { siteConfig } from "@/site.config";
 import { getSiteUrl } from "@/lib/site";
 import { clinicJsonLd, jsonLdString } from "@/lib/seo";
+import { getNavLinks, isFeatureOn } from "@/lib/features";
+import SiteAnalytics from "@/components/analytics/SiteAnalytics";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -63,11 +65,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <SmoothScroll />
-        <Header />
+        <Header navLinks={getNavLinks()} />
         <main className="flex-1">{children}</main>
         <Footer />
         <WhatsAppFloat />
         <MobileStickyBar />
+        {isFeatureOn("analytics") && <SiteAnalytics />}
       </body>
     </html>
   );
