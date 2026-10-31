@@ -83,10 +83,11 @@ export default function SmoothScroll() {
           return;
         }
 
-        // Home (or same path) with no hash → always go to top
+        // Home (or same path) with no hash → always go to top. Keep the query
+        // (e.g. re-tapping the active /admin?view=report tab must not drop it).
         if (!url.hash && url.pathname === window.location.pathname) {
           e.preventDefault();
-          window.history.pushState(null, "", url.pathname);
+          window.history.pushState(null, "", url.pathname + url.search);
           forceScrollToTop();
           return;
         }
