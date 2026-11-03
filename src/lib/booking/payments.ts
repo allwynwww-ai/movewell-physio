@@ -14,13 +14,30 @@ import { isOnlineBookingOn } from "./flags";
 
 type PaymentSettings = typeof siteConfig.payments & { demo: boolean };
 
+/*
+ * PR-preview demo – REVERT THIS BLOCK BEFORE MERGING (harmless on main: it only
+ * matches Vercel preview builds of the feature/premium-payments branch).
+ * Turns payments on with obviously fake UPI / bank details so the preview can be
+ * tried end to end, unless FEATURE_PAYMENTS is set explicitly.
+ */
+function isPreviewDemo(): boolean {
+  const env = (k: string) => (process.env[k] ?? "").trim();
+  return env("VERCEL_ENV") === "preview" && env("VERCEL_GIT_COMMIT_REF") === "feature/premium-payments" && env("FEATURE_PAYMENTS") === "";
+}
+const PREVIEW_DEMO = {
+  upiId: "clinic@upi",
+  payeeName: "Demo Clinic (DEMO)",
+  bank: { accountName: "DEMO ACCOUNT", accountNumber: "000000000000", ifsc: "DEMO0000001", bankName: "Demo Bank" },
+};
+
 /** Is the Premium payments feature on? Needs online booking (payments hang off a booking). */
 export function isPaymentsOn(): boolean {
-  return isFeatureOn("payments") && isOnlineBookingOn();
+  return (isFeatureOn("payments") || isPreviewDemo()) && isOnlineBookingOn();
 }
 
 /** Effective payment settings. */
 export function paymentSettings(): PaymentSettings {
+  if (isPreviewDemo()) return { ...siteConfig.payments, ...PREVIEW_DEMO, demo: true };
   return { ...siteConfig.payments, demo: false };
 }
 
