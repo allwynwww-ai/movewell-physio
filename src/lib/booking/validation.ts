@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { siteConfig } from "@/site.config";
+import { normalisePaymentRef } from "@/lib/payments";
 import { isValidDateKey, isValidTime } from "./time";
 
 const serviceIds = siteConfig.services.map((s) => s.id);
@@ -36,6 +37,17 @@ export const manageSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("cancel"), token: z.string().max(200) }),
   z.object({ action: z.literal("reschedule"), token: z.string().max(200), date: dateKey, time }),
 ]);
+
+/** Premium payments: patient sends the UPI / bank transaction reference from the confirmation or manage page. */
+export const paymentRefSchema = z.object({
+  token: z.string().max(200),
+  method: z.enum(["upi", "bank"]).default("upi"),
+  reference: z
+    .string()
+    .max(80)
+    .transform((v) => normalisePaymentRef(v) ?? "")
+    .refine((v) => v.length > 0, "Enter the transaction ID from your UPI or bank app (6–40 letters or numbers)."),
+});
 
 /** First message per field, for showing errors next to inputs. */
 export function fieldErrors(err: z.ZodError): Record<string, string> {

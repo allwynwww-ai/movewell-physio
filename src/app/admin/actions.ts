@@ -8,7 +8,9 @@ import {
   BookingError,
   cancelAppointment,
   getAppointment,
+  markPaid,
   rescheduleAppointment,
+  setPaymentStatus,
   setStatus,
   unblockDay,
 } from "@/lib/booking/appointments";
@@ -16,6 +18,8 @@ import { ADMIN_COOKIE, ADMIN_SESSION_TTL, checkAdminPassword, isAdmin } from "@/
 import { sendChangeEmails } from "@/lib/booking/email";
 import { adminConfigured } from "@/lib/booking/env";
 import { manageUrl, originOf } from "@/lib/booking/http";
+import { isPaymentsOn } from "@/lib/booking/payments";
+import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/payments";
 import { clientIp, isRateLimited, recordHit } from "@/lib/booking/rate-limit";
 import { adminSessionValue, manageToken, noticeSig } from "@/lib/booking/tokens";
 
@@ -151,4 +155,46 @@ export async function unblockDayAction(formData: FormData) {
   await requireAdmin();
   await unblockDay(String(formData.get("day") ?? ""));
   backTo(formData, { msg: "Day re-opened for online booking." });
+}
+
+/* ---------- Premium payments (clinic confirms manually) ---------- */
+
+export async function markPaidAction(formData: FormData) {
+  await requireAdmin();
+  if (!isPaymentsOn()) backTo(formData, { error: "Payments are not enabled." });
+  const id = String(formData.get("id") ?? "");
+  const method = String(formData.get("method") ?? "") as PaymentMethod;
+  if (!PAYMENT_METHODS.includes(method)) backTo(formData, { error: "Choose how the patient paid." });
+  const ref = String(formData.get("ref") ?? "").trim().slice(0, 60) || null;
+  const rawAmount = String(formData.get("amount") ?? "").replace(/[₹,\s]/g, "");
+  const amount = rawAmount ? Number(rawAmount) : null;
+  if (amount != null && !(Number.isFinite(amount) && amount >= 0 && amount <= 10_000_000)) {
+    backTo(formData, { error: "Enter the amount received in rupees." });
+  }
+  try {
+    await markPaid(id, { method, ref, amountINR: amount == null ? null : Math.round(amount) });
+  } catch (err) {
+    backTo(formData, { error: errorMessage(err) });
+  }
+  backTo(formData, { msg: "Payment recorded." });
+}
+
+const PAYMENT_STATUS_MSG = {
+  unpaid: "Marked as unpaid.",
+  refunded: "Marked as refunded.",
+  waived: "Payment waived.",
+} as const;
+
+export async function setPaymentStatusAction(formData: FormData) {
+  await requireAdmin();
+  if (!isPaymentsOn()) backTo(formData, { error: "Payments are not enabled." });
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("payment") ?? "") as keyof typeof PAYMENT_STATUS_MSG;
+  if (!(status in PAYMENT_STATUS_MSG)) backTo(formData, { error: "Unknown payment status." });
+  try {
+    await setPaymentStatus(id, status);
+  } catch (err) {
+    backTo(formData, { error: errorMessage(err) });
+  }
+  backTo(formData, { msg: PAYMENT_STATUS_MSG[status] });
 }

@@ -1,7 +1,7 @@
 import { siteConfig } from "@/site.config";
 
-/** Pro extras that can be switched on/off in `siteConfig.features`. */
-export type ProFeature = "googleReviews" | "therapists" | "analytics" | "exerciseLibrary";
+/** Pro extras (and the Premium "payments" switch) that can be switched on/off in `siteConfig.features`. */
+export type ProFeature = "googleReviews" | "therapists" | "analytics" | "exerciseLibrary" | "payments";
 
 /** Optional per-deployment overrides ("true"/"false"); the env var wins when set. */
 const ENV_OVERRIDE: Record<ProFeature, string> = {
@@ -9,6 +9,7 @@ const ENV_OVERRIDE: Record<ProFeature, string> = {
   therapists: "FEATURE_THERAPISTS",
   analytics: "FEATURE_ANALYTICS",
   exerciseLibrary: "FEATURE_EXERCISE_LIBRARY",
+  payments: "FEATURE_PAYMENTS",
 };
 
 /**

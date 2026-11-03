@@ -12,7 +12,7 @@ type Sql = postgres.Sql;
 
 const globalForDb = globalThis as unknown as { __bookingSql?: Sql; __bookingSchema?: Promise<void> };
 
-const MIGRATIONS = ["0001_online_booking.sql"];
+const MIGRATIONS = ["0001_online_booking.sql", "0002_payments.sql"];
 
 export class DbNotConfiguredError extends Error {
   constructor() {
@@ -37,9 +37,16 @@ function client(): Sql {
 }
 
 async function ensureSchema(sql: Sql) {
+  // Up to date when the tables exist and the newest migration's columns are there.
+  // Every migration is additive and safe to re-run, so an older database is
+  // brought up to date by simply running them all again.
   const exists = await sql<{ ok: boolean }[]>`
     SELECT to_regclass('public.appointments') IS NOT NULL
-       AND to_regclass('public.blocked_dates') IS NOT NULL AS ok`;
+       AND to_regclass('public.blocked_dates') IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'appointments' AND column_name = 'paid_at'
+       ) AS ok`;
   if (exists[0]?.ok) return;
   await sql.begin(async (tx) => {
     // Serialise concurrent cold starts.
@@ -51,7 +58,7 @@ async function ensureSchema(sql: Sql) {
       await tx`INSERT INTO schema_migrations (name) VALUES (${name}) ON CONFLICT DO NOTHING`;
     }
   });
-  console.info("[booking] database tables created");
+  console.info("[booking] database schema created / updated");
 }
 
 /** Ready-to-use SQL client; creates the tables the first time it is called. */

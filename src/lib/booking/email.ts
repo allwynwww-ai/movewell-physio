@@ -79,7 +79,7 @@ const button = (href: string, label: string) =>
 
 const clinicTo = () => clinicNotifyEmail(booking.clinicNotifyEmail || siteConfig.contact.email);
 
-export async function sendBookingEmails(a: Appointment, links: { manageUrl: string; adminUrl: string }) {
+export async function sendBookingEmails(a: Appointment, links: { manageUrl: string; adminUrl: string; payNote?: string | null }) {
   const pending = a.status === "pending";
   const ics = buildIcs({ ...a, manageUrl: links.manageUrl });
   await Promise.all([
@@ -95,7 +95,9 @@ export async function sendBookingEmails(a: Appointment, links: { manageUrl: stri
         }</p>${details(a)}
 <p style="font-size:14px;line-height:1.6;color:#475569">Need to change it? You can cancel or reschedule online up to ${
           booking.cancellationCutoffHours
-        } hours before your appointment.</p>${button(links.manageUrl, "Manage my booking")}`,
+        } hours before your appointment.</p>${
+          links.payNote ? `<p style="font-size:14px;line-height:1.6;color:#475569"><strong>Payment:</strong> ${esc(links.payNote)}</p>` : ""
+        }${button(links.manageUrl, "Manage my booking")}`,
       ),
     }),
     send({

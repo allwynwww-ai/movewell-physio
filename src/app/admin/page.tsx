@@ -7,13 +7,17 @@ import {
   cancelAction,
   loginAction,
   logoutAction,
+  markPaidAction,
+  setPaymentStatusAction,
   setStatusAction,
   unblockDayAction,
 } from "@/app/admin/actions";
 import {
   ALL_STATUSES,
+  getPaymentTotals,
   getReport,
   listAppointments,
+  parsePaymentFilter,
   listReportAppointments,
   getStats,
   hasStarted,
@@ -22,13 +26,17 @@ import {
   type AppointmentStatus,
   type AdminReport,
   type ListScope,
+  type PaymentFilter,
+  type PaymentTotals,
 } from "@/lib/booking/appointments";
 import { isAdmin } from "@/lib/booking/admin-auth";
 import { adminConfigured, bookingStatus } from "@/lib/booking/env";
+import { isPaymentsOn } from "@/lib/booking/payments";
 import { MAX_REPORT_DAYS, parseReportStatus, REPORT_PRESETS, resolveReportRange, type ReportRange } from "@/lib/booking/report";
 import { addDays, dateKeyOf, formatDateKey, formatSlotTime, timeOf, todayKey, TZ_LABEL } from "@/lib/booking/time";
 import { verifyNotice } from "@/lib/booking/tokens";
-import { siteConfig } from "@/lib/site";
+import { PAYMENT_METHOD_LABEL, PAYMENT_METHODS, PAYMENT_STATUS_LABEL, type PaymentStatus } from "@/lib/payments";
+import { formatINR, siteConfig } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +57,21 @@ const STATUS: Record<AppointmentStatus, { label: string; cls: string }> = {
   no_show: { label: "No-show", cls: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300" },
   cancelled: { label: "Cancelled", cls: "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400 line-through" },
 };
+
+/** Premium payments badge colours. */
+const PAY_CLS: Record<PaymentStatus, string> = {
+  unpaid: "bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/30",
+  pending_verification: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+  paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
+  refunded: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+  waived: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+};
+const PAY_FILTERS: { id: PaymentFilter | null; label: string }[] = [
+  { id: null, label: "All payments" },
+  { id: "unpaid", label: "Unpaid" },
+  { id: "check", label: "Awaiting check" },
+  { id: "paid", label: "Paid" },
+];
 
 const card = "bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]";
 const smallBtn =
@@ -120,7 +143,69 @@ function Login({ error, msg }: { error?: string; msg?: string }) {
   );
 }
 
-function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
+function PaymentControls({ a, hidden }: { a: Appointment; hidden: React.ReactNode }) {
+  const ps = a.paymentStatus;
+  const payBtn = (status: "unpaid" | "refunded" | "waived", label: string) => (
+    <form action={setPaymentStatusAction}>
+      {hidden}
+      <input type="hidden" name="payment" value={status} />
+      <SubmitButton className={smallBtn}>{label}</SubmitButton>
+    </form>
+  );
+  const amount = a.paymentTotalINR ?? a.paymentDueINR;
+  const parts = [
+    a.paymentTotalINR != null ? `Fee ${formatINR(a.paymentTotalINR)}` : "",
+    a.paymentDueINR != null && a.paymentDueINR !== a.paymentTotalINR ? `deposit ${formatINR(a.paymentDueINR)}` : "",
+    ps === "paid" && a.paymentPaidINR != null ? `received ${formatINR(a.paymentPaidINR)}` : "",
+    a.paymentMethod ? PAYMENT_METHOD_LABEL[a.paymentMethod] : "",
+    a.paymentRef ? `ref ${a.paymentRef}` : "",
+  ].filter(Boolean);
+  return (
+    <div className="mt-3 md:pl-46 flex flex-col gap-2" data-testid="admin-payment">
+      {parts.length > 0 && (
+        <p className="text-xs text-[var(--color-text-muted)] [overflow-wrap:anywhere]" data-testid="admin-payment-info">
+          {parts.join(" · ")}
+        </p>
+      )}
+      <div className="flex flex-wrap items-start gap-2">
+        {(ps === "unpaid" || ps === "pending_verification") && a.status !== "cancelled" && (
+          <details className="group w-full sm:w-auto">
+            <summary className={`${smallBtn} inline-flex items-center cursor-pointer list-none`} data-testid="admin-mark-paid-toggle">
+              {ps === "pending_verification" ? "Check & mark paid" : "Mark paid"}
+            </summary>
+            <form action={markPaidAction} className="mt-2 grid grid-cols-1 sm:grid-cols-[8rem_minmax(0,12rem)_7rem_auto] gap-2 items-end" data-testid="admin-mark-paid-form">
+              {hidden}
+              <label className="block text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Method
+                <select name="method" defaultValue={a.paymentMethod ?? "upi"} className={`${input} mt-1 !py-2`}>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {PAYMENT_METHOD_LABEL[m]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Reference (optional)
+                <input name="ref" maxLength={60} defaultValue={a.paymentRef ?? ""} placeholder="UTR / receipt no." className={`${input} mt-1 !py-2`} />
+              </label>
+              <label className="block text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Amount ₹
+                <input name="amount" inputMode="numeric" pattern="[0-9,]*" defaultValue={amount ?? ""} className={`${input} mt-1 !py-2`} />
+              </label>
+              <SubmitButton className="premium-btn premium-btn-primary px-4 py-2 text-sm">Save as paid</SubmitButton>
+            </form>
+          </details>
+        )}
+        {(ps === "unpaid" || ps === "pending_verification") && a.status !== "cancelled" && payBtn("waived", "Waive")}
+        {ps === "paid" && payBtn("refunded", "Refunded")}
+        {ps !== "unpaid" && payBtn("unpaid", "Mark unpaid")}
+      </div>
+    </div>
+  );
+}
+
+function AppointmentRow({ a, back, payments = false }: { a: Appointment; back: string; payments?: boolean }) {
   const st = STATUS[a.status];
   const isPast = hasStarted(a);
   const active = a.status === "pending" || a.status === "confirmed";
@@ -148,6 +233,15 @@ function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-[var(--color-secondary)] break-words [overflow-wrap:anywhere] min-w-0">{a.name}</p>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
+            {payments && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${PAY_CLS[a.paymentStatus]}`}
+                data-testid="payment-badge"
+                data-payment={a.paymentStatus}
+              >
+                {PAYMENT_STATUS_LABEL[a.paymentStatus]}
+              </span>
+            )}
             <span className="text-[11px] text-[var(--color-text-muted)]">{a.ref}</span>
           </div>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{a.serviceName}</p>
@@ -186,6 +280,7 @@ function AppointmentRow({ a, back }: { a: Appointment; back: string }) {
           )}
         </div>
       </div>
+      {payments && <PaymentControls a={a} hidden={hidden} />}
       {active && (
         <div className="mt-3 md:pl-46">
           <AdminReschedule id={a.id} back={back} />
@@ -257,11 +352,13 @@ function Report({
   status,
   report,
   rows,
+  payTotals,
 }: {
   range: ReportRange;
   status: AppointmentStatus | null;
   report: AdminReport;
   rows: Appointment[];
+  payTotals: PaymentTotals | null;
 }) {
   const pct = (r: number | null) => (r === null ? "–" : `${Math.round(r * 100)}%`);
   const countCards: { key: string; label: string; value: string; hint?: string }[] = [
@@ -337,6 +434,37 @@ function Report({
         ))}
       </div>
 
+      {payTotals && (
+        <div className={`${card} p-4 md:p-5`}>
+          <h3 className="font-semibold text-[var(--color-secondary)] mb-3">Payments</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="report-payments">
+            {[
+              { key: "collected", label: "Collected", value: formatINR(payTotals.collectedINR), hint: `${payTotals.paidCount} paid` },
+              {
+                key: "outstanding",
+                label: "To collect",
+                value: formatINR(payTotals.outstandingINR),
+                hint: `${payTotals.unpaidCount} unpaid${payTotals.checkCount ? ` · ${payTotals.checkCount} awaiting check` : ""}`,
+              },
+              { key: "check", label: "Awaiting check", value: String(payTotals.checkCount) },
+              { key: "refunded-waived", label: "Refunded / waived", value: `${payTotals.refundedCount} / ${payTotals.waivedCount}` },
+            ].map((c) => (
+              <div key={c.key} data-key={c.key} className="rounded-xl bg-[var(--color-bg)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{c.label}</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--color-secondary)] mt-1 tabular-nums" data-value>
+                  {c.value}
+                </p>
+                {c.hint && <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{c.hint}</p>}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            Based on appointment dates in this range. Collected = amounts you marked as received; cancelled bookings aren&apos;t counted
+            as owed.
+          </p>
+        </div>
+      )}
+
       <div className={`${card} p-4 md:p-5`}>
         <h3 className="font-semibold text-[var(--color-secondary)] mb-3">By service</h3>
         {report.services.length ? (
@@ -404,6 +532,7 @@ function Report({
                 data-testid="report-row"
                 data-ref={a.ref}
                 data-status={a.status}
+                data-payment={payTotals ? a.paymentStatus : undefined}
                 className="py-3 grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[9.5rem_minmax(0,1fr)_minmax(0,12rem)_auto] gap-x-3 gap-y-1 items-start"
               >
                 <div className="text-sm">
@@ -456,6 +585,7 @@ export default async function AdminPage({
     from?: string;
     to?: string;
     status?: string;
+    pay?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -473,15 +603,19 @@ export default async function AdminPage({
   const one = (v: unknown) => (typeof v === "string" ? v : undefined);
   const range = resolveReportRange({ range: one(sp.range), from: one(sp.from), to: one(sp.to) });
   const reportStatus = parseReportStatus(one(sp.status));
-  const back = isReport
-    ? `/admin?${reportQuery(range, reportStatus, { view })}`
-    : `/admin?${new URLSearchParams({ view, ...(q ? { q } : {}) })}`;
+  // Premium payments: badge + mark paid on each booking, unpaid filter, totals in Report.
+  const payments = isPaymentsOn();
+  const pay = payments && !isReport && view !== "week" ? parsePaymentFilter(one(sp.pay)) : null;
+  const listQuery = (v: View, extra: { q?: string; pay?: PaymentFilter | null } = {}) =>
+    new URLSearchParams({ view: v, ...(extra.q ? { q: extra.q } : {}), ...(extra.pay ? { pay: extra.pay } : {}) }).toString();
+  const back = isReport ? `/admin?${reportQuery(range, reportStatus, { view })}` : `/admin?${listQuery(view, { q, pay })}`;
 
-  const [stats, rows, blockedDays, report] = await Promise.all([
+  const [stats, rows, blockedDays, report, payTotals] = await Promise.all([
     getStats(),
-    isReport ? listReportAppointments(range.from, range.to, reportStatus, REPORT_LIST_LIMIT) : listAppointments(view, q),
+    isReport ? listReportAppointments(range.from, range.to, reportStatus, REPORT_LIST_LIMIT) : listAppointments(view, q, pay),
     listBlockedDays(),
     isReport ? getReport(range.from, range.to) : null,
+    isReport && payments ? getPaymentTotals(range.from, range.to) : null,
   ]);
   const blockedMap = new Map(blockedDays.map((b) => [b.day, b.reason]));
   const status = bookingStatus();
@@ -506,14 +640,14 @@ export default async function AdminPage({
   ];
   const exportHref = isReport
     ? `/admin/export?${reportQuery(range, reportStatus, { scope: "report" })}`
-    : `/admin/export?${new URLSearchParams({ scope: view, ...(q ? { q } : {}) })}`;
+    : `/admin/export?${new URLSearchParams({ scope: view, ...(q ? { q } : {}), ...(pay ? { pay } : {}) })}`;
 
   const tabs = (
     <nav className="grid grid-cols-3 sm:flex min-w-0 gap-1 overflow-x-auto rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-1" aria-label="Views">
       {VIEWS.map((v) => (
         <Link
           key={v.id}
-          href={`/admin?${new URLSearchParams({ view: v.id, ...(q && v.id !== "report" ? { q } : {}) })}`}
+          href={`/admin?${v.id === "report" ? listQuery(v.id) : listQuery(v.id, { q, pay })}`}
           scroll={false}
           aria-current={v.id === view ? "page" : undefined}
           className={tabCls(v.id === view)}
@@ -590,7 +724,7 @@ export default async function AdminPage({
           <div id="appointments" className="scroll-mt-24 mb-4">
             {tabs}
           </div>
-          <Report range={range} status={reportStatus} report={report} rows={rows} />
+          <Report range={range} status={reportStatus} report={report} rows={rows} payTotals={payTotals} />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
@@ -599,12 +733,29 @@ export default async function AdminPage({
               {tabs}
               <form action="/admin#appointments" method="get" className="flex gap-2" role="search">
                 <input type="hidden" name="view" value={view} />
+                {pay && <input type="hidden" name="pay" value={pay} />}
                 <input name="q" defaultValue={q} placeholder="Search name, phone, email or ref" aria-label="Search" className={`${input} sm:w-60`} />
                 <button type="submit" className="premium-btn premium-btn-primary px-4 py-2 text-sm">
                   Search
                 </button>
               </form>
             </div>
+            {payments && view !== "week" && (
+              <nav className="flex gap-2 overflow-x-auto pb-1 mb-4" aria-label="Payment filter" data-testid="payment-filter">
+                {PAY_FILTERS.map((f) => (
+                  <Link
+                    key={f.id ?? "all"}
+                    href={`/admin?${listQuery(view, { q, pay: f.id })}#appointments`}
+                    scroll={false}
+                    aria-current={f.id === pay ? "page" : undefined}
+                    className={chipCls(f.id === pay)}
+                    data-pay={f.id ?? "all"}
+                  >
+                    {f.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
             {(view === "today" || view === "upcoming" || view === "week") && (
               <p className="text-xs text-[var(--color-text-muted)] -mt-2 mb-3">
                 Showing pending and confirmed only. Done, no-show and cancelled bookings are under Past, All and Report.
@@ -616,12 +767,14 @@ export default async function AdminPage({
             ) : rows.length ? (
               <ul className="space-y-3">
                 {rows.map((a) => (
-                  <AppointmentRow key={a.id} a={a} back={back} />
+                  <AppointmentRow key={a.id} a={a} back={back} payments={payments} />
                 ))}
               </ul>
             ) : (
               <div className={`${card} p-10 text-center text-sm text-[var(--color-text-muted)]`}>
-                {q
+                {pay
+                  ? `No ${PAY_FILTERS.find((f) => f.id === pay)?.label.toLowerCase()} appointments here.`
+                  : q
                   ? `No appointments match “${q}”.`
                   : {
                       today: "No pending or confirmed appointments today.",
