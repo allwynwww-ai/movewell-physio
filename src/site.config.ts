@@ -94,6 +94,9 @@ export type TeamMember = {
   bio: string;
 };
 
+/** Premium payments: how much is asked for online before the visit. */
+export type PaymentMode = "full" | "deposit" | "none";
+
 export type Service = {
   id: string;
   name: string;
@@ -154,6 +157,14 @@ export const siteConfig = {
     onlineBooking: false,
     /** "form" = FormSubmit email form (Basic). Pro/Premium may add "calendar". */
     booking: "form" as "form" | "whatsapp-only" | "calendar",
+    /**
+     * PREMIUM — Zero-cost payments on the booking confirmation and manage page:
+     * pay at the clinic (cash / card / UPI), a UPI QR code with the amount
+     * pre-filled, and bank-transfer details. No payment gateway and no fees –
+     * the clinic checks its UPI / bank app and marks bookings paid in /admin.
+     * Needs online booking. Settings live in `payments` below.
+     * Env: FEATURE_PAYMENTS (true/false, wins when set; read at build time).
+     */
     payments: false,
     calendar: false,
     blog: false,
@@ -274,6 +285,40 @@ export const siteConfig = {
     maxUpcomingPerPhone: 3,
     /** Where new-booking emails go. "" = contact.email. Can be overridden with CLINIC_NOTIFY_EMAIL. */
     clinicNotifyEmail: "",
+  },
+
+  /* ── Payments (Premium) — used only when features.payments is on ──────── */
+  payments: {
+    /** Which ways to pay are offered. A method is also hidden when its details below are empty. */
+    methods: { clinic: true, upi: true, bank: true },
+    /**
+     * Online (UPI / bank) payment before the visit:
+     *   "full"    – ask for the full service fee
+     *   "deposit" – ask for `depositINR`, the rest is paid at the clinic
+     *   "none"    – pay at the clinic only (no QR / bank details)
+     */
+    onlineMode: "full" as PaymentMode,
+    /** Fixed deposit (INR) when onlineMode is "deposit". Capped at the service fee. */
+    depositINR: 500,
+    /**
+     * Fee per service id (INR), used ONLY in the payment step after booking –
+     * never on the public Services page. Falls back to services[].priceINR.
+     * A service with no fee gets "pay at the clinic" only. DEMO amounts.
+     */
+    serviceFeesINR: {
+      "back-neck-pain": 1200,
+      "sports-injury": 1500,
+      "post-surgical": 1500,
+      "pelvic-floor": 1500,
+      "vestibular-balance": 1200,
+      "manual-therapy": 1000,
+    } as Record<string, number>,
+    /** Your UPI ID (VPA), e.g. "yourclinic@okhdfcbank". Empty = no UPI QR. */
+    upiId: "",
+    /** Name shown in the patient's UPI app. "" = brand.name. */
+    payeeName: "",
+    /** Bank transfer details. Leave any of the first three empty to hide bank transfer. */
+    bank: { accountName: "", accountNumber: "", ifsc: "", bankName: "" },
   },
 
   /* ── Location ────────────────────────────────────────────────────────── */

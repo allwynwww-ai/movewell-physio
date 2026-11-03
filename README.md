@@ -52,9 +52,12 @@ Each Pro feature has its own switch, so a clinic gets exactly what it pays for.
 
 See [Pro extras](#pro-extras-reviews-team-analytics-exercises) for setup.
 
+### Premium — available now
+
+- **Zero-cost payments** (`features.payments`) – pay at the clinic, UPI QR / "Pay with UPI", bank transfer. See [Payments (Premium)](#payments-premium).
+
 ### Premium — planned
 
-- Online payments / deposits
 - Multi-location clinics
 - Patient reminders (WhatsApp / SMS / email)
 - Custom design and copywriting
@@ -344,6 +347,52 @@ What the code does when `analytics` is on:
    properties (`location`, `page`), which is the Pro limit.
 
 Locally and on non-Vercel hosts the script is not served, so nothing is tracked.
+
+---
+
+## Payments (Premium)
+
+Zero-cost payments with **no payment gateway and no fees**. After booking online, the patient sees a *Payment* panel on the
+confirmation and on their manage page:
+
+- **Pay at the clinic** – cash, card or UPI at reception.
+- **UPI** – a QR code (rendered on the server with [`qrcode`](https://www.npmjs.com/package/qrcode), no external API) for
+  `upi://pay?pa=<UPI ID>&pn=<name>&am=<amount>&cu=INR&tn=<booking ref>`, plus a **Pay with UPI** button on phones that opens the
+  same link in GPay / PhonePe / Paytm / BHIM.
+- **Bank transfer** – account name, number, IFSC and bank, with the booking reference to quote.
+- Optional: the patient types the UPI transaction ID (UTR) / bank reference → status *Awaiting check*.
+
+Nothing is charged automatically – the clinic checks its UPI / bank app and clicks **Mark paid** in `/admin`.
+
+### Turn it on
+
+Online booking must be on. Then set `features.payments: true` in `site.config.ts`, **or** the env var `FEATURE_PAYMENTS=true`
+(read at build time – redeploy after changing it). Off by default.
+
+### Settings (`src/site.config.ts` → `payments`)
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `methods.clinic` / `methods.upi` / `methods.bank` | `true` | Which methods to offer. UPI / bank are also hidden until their details are filled in. |
+| `onlineMode` | `"full"` | `"full"` = ask for the full fee online, `"deposit"` = ask for `depositINR` (rest at the clinic), `"none"` = pay at the clinic only (no QR / bank). |
+| `depositINR` | `500` | Deposit amount for `"deposit"` mode (capped at the fee). |
+| `serviceFeesINR` | demo values | Fee per service id used **only in the payment step** (Basic keeps prices off public pages). Falls back to `services[].priceINR`. |
+| `upiId` | `""` | Your UPI ID (VPA), e.g. `clinicname@okhdfcbank`. Empty = no QR. |
+| `payeeName` | `""` | Name shown in the UPI app (defaults to `brand.name`). |
+| `bank.accountName` / `accountNumber` / `ifsc` / `bankName` | `""` | Bank transfer details. Hidden unless name, number and IFSC are all set. |
+
+The amount is saved on each booking when it is made, so later price changes don't affect existing bookings.
+
+### Admin
+
+Each booking shows a payment badge (*Unpaid*, *Awaiting check*, *Paid*, *Refunded*, *Waived*), the fee and any reference, with
+**Mark paid** (method, reference, amount), **Waive**, **Refunded** and **Mark unpaid**. Filter chips show only unpaid, awaiting
+check or paid bookings, the Report tab adds *Collected* / *To collect* totals, and the CSV export adds payment columns.
+
+### Database
+
+`db/migrations/0002_payments.sql` is **additive only** (new nullable / defaulted columns on `appointments`, check constraints and an
+index – no drops or rewrites) and safe to re-run. The app applies it automatically on first use, or run `npm run db:migrate`.
 
 ---
 

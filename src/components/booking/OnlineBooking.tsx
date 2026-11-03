@@ -4,14 +4,19 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BookingForm from "@/components/BookingForm";
+import PaymentPanel from "@/components/booking/PaymentPanel";
 import SlotPicker, { useAvailability } from "@/components/booking/SlotPicker";
 import { booking, formatDateKey, formatSlotTime, TZ_LABEL } from "@/lib/booking/time";
+import type { PaymentView } from "@/lib/payments";
 import { CLINIC_PHONE_DISPLAY, formatINR, siteConfig, telLink } from "@/lib/site";
 
 type Confirmation = {
   booking: { ref: string; status: string; serviceName: string; date: string; time: string; name: string; email: string };
+  token: string;
   manageUrl: string;
   icsUrl: string;
+  /** Premium payments – null/absent when the feature is off. */
+  payment?: PaymentView | null;
 };
 
 const inputClass =
@@ -104,6 +109,11 @@ export default function OnlineBooking() {
             </div>
           ))}
         </dl>
+        {done.payment && (
+          <div className="border-t border-[var(--color-border)] pt-6 mb-6">
+            <PaymentPanel initial={done.payment} token={done.token} />
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href={done.icsUrl} className="premium-btn premium-btn-primary w-full sm:w-auto px-6 py-3 text-sm" download>
             Add to calendar (.ics)

@@ -4,6 +4,7 @@
  * client component.
  */
 import { randomInt } from "node:crypto";
+import type { PaymentMethod, PaymentStatus } from "@/lib/payments";
 import { db, isUniqueViolation } from "./db";
 import {
   addDays,
@@ -34,6 +35,14 @@ export type Appointment = {
   createdAt: Date;
   cancelledAt: Date | null;
   cancelledBy: "patient" | "clinic" | null;
+  /** Premium payments (columns from migration 0002). */
+  paymentStatus: PaymentStatus;
+  paymentTotalINR: number | null;
+  paymentDueINR: number | null;
+  paymentPaidINR: number | null;
+  paymentMethod: PaymentMethod | null;
+  paymentRef: string | null;
+  paidAt: Date | null;
 };
 
 type Row = {
@@ -51,6 +60,13 @@ type Row = {
   created_at: Date;
   cancelled_at: Date | null;
   cancelled_by: "patient" | "clinic" | null;
+  payment_status?: PaymentStatus;
+  payment_total_inr?: number | null;
+  payment_due_inr?: number | null;
+  payment_paid_inr?: number | null;
+  payment_method?: PaymentMethod | null;
+  payment_ref?: string | null;
+  paid_at?: Date | null;
 };
 
 function toAppointment(r: Row): Appointment {
@@ -69,6 +85,13 @@ function toAppointment(r: Row): Appointment {
     createdAt: new Date(r.created_at),
     cancelledAt: r.cancelled_at ? new Date(r.cancelled_at) : null,
     cancelledBy: r.cancelled_by,
+    paymentStatus: r.payment_status ?? "unpaid",
+    paymentTotalINR: r.payment_total_inr ?? null,
+    paymentDueINR: r.payment_due_inr ?? null,
+    paymentPaidINR: r.payment_paid_inr ?? null,
+    paymentMethod: r.payment_method ?? null,
+    paymentRef: r.payment_ref ?? null,
+    paidAt: r.paid_at ? new Date(r.paid_at) : null,
   };
 }
 
@@ -177,6 +200,8 @@ export type NewBooking = {
   phone: string;
   email: string;
   note: string;
+  /** Premium payments: fee and online amount to record (null when payments are off). */
+  payment?: { totalINR: number | null; dueINR: number | null } | null;
 };
 
 export async function createAppointment(input: NewBooking): Promise<Appointment> {
@@ -203,10 +228,12 @@ export async function createAppointment(input: NewBooking): Promise<Appointment>
         // The partial unique index on starts_at rejects a second active booking for the slot.
         const [r] = await tx<Row[]>`
           INSERT INTO appointments
-            (ref, service_id, service_name, starts_at, ends_at, status, name, phone, email, note, consent_at)
+            (ref, service_id, service_name, starts_at, ends_at, status, name, phone, email, note, consent_at,
+             payment_total_inr, payment_due_inr)
           VALUES
             (${newRef()}, ${input.serviceId}, ${input.serviceName}, ${startsAt}, ${endsAt}, ${status},
-             ${input.name}, ${input.phone}, ${input.email}, ${input.note}, now())
+             ${input.name}, ${input.phone}, ${input.email}, ${input.note}, now(),
+             ${input.payment?.totalINR ?? null}, ${input.payment?.dueINR ?? null})
           RETURNING *`;
         return r;
       });
@@ -330,7 +357,23 @@ export async function setStatus(id: string, status: Exclude<AppointmentStatus, "
  */
 export type ListScope = "today" | "upcoming" | "week" | "past" | "all";
 
-export async function listAppointments(scope: ListScope, q = ""): Promise<Appointment[]> {
+type Sql = Awaited<ReturnType<typeof db>>;
+
+/** Premium payments filter: "unpaid" = unpaid or awaiting check (cancelled excluded); "check" = awaiting check only. */
+export type PaymentFilter = "unpaid" | "check" | "paid";
+
+export function parsePaymentFilter(v: unknown): PaymentFilter | null {
+  return v === "unpaid" || v === "check" || v === "paid" ? v : null;
+}
+
+function paymentClause(sql: Sql, pay: PaymentFilter | null) {
+  if (pay === "unpaid") return sql`AND payment_status IN ('unpaid', 'pending_verification') AND status <> 'cancelled'`;
+  if (pay === "check") return sql`AND payment_status = 'pending_verification'`;
+  if (pay === "paid") return sql`AND payment_status = 'paid'`;
+  return sql``;
+}
+
+export async function listAppointments(scope: ListScope, q = "", pay: PaymentFilter | null = null): Promise<Appointment[]> {
   const sql = await db();
   const today = todayKey();
   const dayStart = zonedToUtc(today, "00:00");
@@ -339,23 +382,22 @@ export async function listAppointments(scope: ListScope, q = ""): Promise<Appoin
   const now = new Date();
   const search = searchClause(sql, q);
   const active = sql`AND status IN ('pending', 'confirmed')`;
+  const payF = paymentClause(sql, pay);
 
   let rows: Row[];
   if (scope === "today") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${active} ${search} ORDER BY starts_at, ref`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${dayEnd} ${active} ${search} ${payF} ORDER BY starts_at, ref`;
   } else if (scope === "upcoming") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${now} ${active} ${search} ORDER BY starts_at, ref LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${now} ${active} ${search} ${payF} ORDER BY starts_at, ref LIMIT 500`;
   } else if (scope === "week") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${weekEnd} ${active} ${search} ORDER BY starts_at, ref LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at >= ${dayStart} AND starts_at < ${weekEnd} ${active} ${search} ${payF} ORDER BY starts_at, ref LIMIT 500`;
   } else if (scope === "past") {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at < ${now} ${search} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 500`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE starts_at < ${now} ${search} ${payF} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 500`;
   } else {
-    rows = await sql<Row[]>`SELECT * FROM appointments WHERE true ${search} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 2000`;
+    rows = await sql<Row[]>`SELECT * FROM appointments WHERE true ${search} ${payF} ORDER BY starts_at DESC, (status = 'cancelled'), ref LIMIT 2000`;
   }
   return rows.map(toAppointment);
 }
-
-type Sql = Awaited<ReturnType<typeof db>>;
 
 /** Name / ref / email / phone-digits search fragment (parameterised). */
 function searchClause(sql: Sql, q: string) {
@@ -537,4 +579,97 @@ export async function unblockDay(day: string) {
 /** Has the appointment's start time passed? */
 export function hasStarted(a: Appointment, now = new Date()): boolean {
   return a.startsAt.getTime() <= now.getTime();
+}
+
+/* ── Premium payments ─────────────────────────────────────────────────── */
+
+/** Patient sends a UPI / bank transaction reference → "awaiting check" until the clinic confirms. */
+export async function submitPaymentRef(id: string, ref: string, method: "upi" | "bank"): Promise<Appointment> {
+  const sql = await db();
+  const [r] = await sql<Row[]>`
+    UPDATE appointments
+    SET payment_status = 'pending_verification', payment_ref = ${ref}, payment_method = ${method},
+        payment_updated_at = now(), updated_at = now()
+    WHERE id = ${id} AND status <> 'cancelled' AND payment_status IN ('unpaid', 'pending_verification')
+    RETURNING *`;
+  if (!r) {
+    const current = await getAppointment(id);
+    if (!current) throw new BookingError("not-found", "Appointment not found.");
+    throw new BookingError("not-active", "This booking can no longer take a payment reference. Please call the clinic.");
+  }
+  return toAppointment(r);
+}
+
+/** Clinic records a payment (admin). */
+export async function markPaid(
+  id: string,
+  opts: { method: PaymentMethod; ref: string | null; amountINR: number | null },
+): Promise<Appointment> {
+  const sql = await db();
+  const [r] = await sql<Row[]>`
+    UPDATE appointments
+    SET payment_status = 'paid', payment_method = ${opts.method}, payment_ref = ${opts.ref},
+        payment_paid_inr = ${opts.amountINR}, paid_at = now(), payment_updated_at = now(), updated_at = now()
+    WHERE id = ${id}
+    RETURNING *`;
+  if (!r) throw new BookingError("not-found", "Appointment not found.");
+  return toAppointment(r);
+}
+
+/** Clinic sets the payment back to unpaid, or marks it refunded / waived (admin). */
+export async function setPaymentStatus(id: string, status: "unpaid" | "refunded" | "waived"): Promise<Appointment> {
+  const sql = await db();
+  const [r] =
+    status === "unpaid"
+      ? await sql<Row[]>`
+          UPDATE appointments
+          SET payment_status = 'unpaid', payment_method = NULL, payment_ref = NULL, payment_paid_inr = NULL,
+              paid_at = NULL, payment_updated_at = now(), updated_at = now()
+          WHERE id = ${id} RETURNING *`
+      : await sql<Row[]>`
+          UPDATE appointments
+          SET payment_status = ${status}, payment_updated_at = now(), updated_at = now()
+          WHERE id = ${id} RETURNING *`;
+  if (!r) throw new BookingError("not-found", "Appointment not found.");
+  return toAppointment(r);
+}
+
+export type PaymentTotals = {
+  /** Sum recorded as received (status paid). */
+  collectedINR: number;
+  paidCount: number;
+  /** Fee still to collect on unpaid / awaiting-check bookings (cancelled excluded). */
+  outstandingINR: number;
+  unpaidCount: number;
+  checkCount: number;
+  refundedCount: number;
+  waivedCount: number;
+};
+
+export async function getPaymentTotals(fromKey: string, toKey: string): Promise<PaymentTotals> {
+  const sql = await db();
+  const { start, end } = rangeBounds(fromKey, toKey);
+  const [r] = await sql<
+    { collected: number; paid: number; outstanding: number; unpaid: number; checking: number; refunded: number; waived: number }[]
+  >`
+    SELECT
+      coalesce(sum(payment_paid_inr) FILTER (WHERE payment_status = 'paid'), 0)::int AS collected,
+      count(*) FILTER (WHERE payment_status = 'paid')::int AS paid,
+      coalesce(sum(coalesce(payment_total_inr, payment_due_inr))
+        FILTER (WHERE payment_status IN ('unpaid', 'pending_verification') AND status <> 'cancelled'), 0)::int AS outstanding,
+      count(*) FILTER (WHERE payment_status IN ('unpaid', 'pending_verification') AND status <> 'cancelled')::int AS unpaid,
+      count(*) FILTER (WHERE payment_status = 'pending_verification' AND status <> 'cancelled')::int AS checking,
+      count(*) FILTER (WHERE payment_status = 'refunded')::int AS refunded,
+      count(*) FILTER (WHERE payment_status = 'waived')::int AS waived
+    FROM appointments
+    WHERE starts_at >= ${start} AND starts_at < ${end}`;
+  return {
+    collectedINR: r.collected,
+    paidCount: r.paid,
+    outstandingINR: r.outstanding,
+    unpaidCount: r.unpaid,
+    checkCount: r.checking,
+    refundedCount: r.refunded,
+    waivedCount: r.waived,
+  };
 }

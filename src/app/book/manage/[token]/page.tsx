@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ManageBooking from "@/components/booking/ManageBooking";
+import PaymentPanel from "@/components/booking/PaymentPanel";
 import { getAppointment, hasStarted, withinCutoff } from "@/lib/booking/appointments";
 import { bookingStatus } from "@/lib/booking/env";
+import { paymentView } from "@/lib/booking/payments";
 import { booking, formatInstant } from "@/lib/booking/time";
 import { verifyManageToken } from "@/lib/booking/tokens";
 import { CLINIC_PHONE_DISPLAY, siteConfig, telLink } from "@/lib/site";
@@ -35,6 +37,8 @@ export default async function ManagePage({ params }: { params: Promise<{ token: 
   const active = a.status === "pending" || a.status === "confirmed";
   const upcoming = !hasStarted(a);
   const canChange = active && withinCutoff(a);
+  // Premium payments (null when off). Hidden for cancelled bookings unless money changed hands.
+  const payment = a.status !== "cancelled" || a.paymentStatus !== "unpaid" ? await paymentView(a) : null;
 
   return (
     <section className="py-12 md:py-16 bg-[var(--color-bg)] min-h-[60vh]">
@@ -99,6 +103,12 @@ export default async function ManagePage({ params }: { params: Promise<{ token: 
             </a>
           )}
         </div>
+
+        {payment && (
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 shadow-sm mt-6">
+            <PaymentPanel initial={payment} token={token} />
+          </div>
+        )}
 
         <p className="text-xs text-[var(--color-text-muted)] mt-6">
           Keep this link private – anyone with it can change your booking. Questions? Call {siteConfig.brand.name} on{" "}

@@ -5,6 +5,7 @@ import { sendBookingEmails } from "@/lib/booking/email";
 import { guard, json, manageUrl, originOf } from "@/lib/booking/http";
 import { clientIp, rateLimit } from "@/lib/booking/rate-limit";
 import { dateKeyOf, timeOf } from "@/lib/booking/time";
+import { amountsForNewBooking, paymentEmailNote, paymentView } from "@/lib/booking/payments";
 import { manageToken } from "@/lib/booking/tokens";
 import { bookingSchema, fieldErrors } from "@/lib/booking/validation";
 
@@ -49,11 +50,13 @@ export async function POST(req: Request) {
       phone: input.phone,
       email: input.email,
       note: input.note,
+      payment: amountsForNewBooking(service.id),
     });
     const token = manageToken(appt.id);
     const origin = originOf(req.headers, req.url);
     const links = { manageUrl: manageUrl(origin, token), adminUrl: `${origin}/admin` };
-    after(() => sendBookingEmails(appt, links));
+    const payment = await paymentView(appt);
+    after(() => sendBookingEmails(appt, { ...links, payNote: paymentEmailNote(payment) }));
 
     return json(
       {
@@ -70,6 +73,8 @@ export async function POST(req: Request) {
         token,
         manageUrl: links.manageUrl,
         icsUrl: `/api/booking/ics?token=${encodeURIComponent(token)}`,
+        // Premium payments (null when off): amount, UPI QR / link, bank details.
+        payment,
       },
       201,
     );

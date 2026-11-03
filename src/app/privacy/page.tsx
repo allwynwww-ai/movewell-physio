@@ -3,6 +3,7 @@ import LegalPage, { LegalSection } from "@/components/LegalPage";
 import { addressOneLine, CLINIC_EMAIL, siteConfig } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 import { isOnlineBookingOn } from "@/lib/booking/flags";
+import { isPaymentsOn } from "@/lib/booking/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default function PrivacyPage() {
   const { legal, brand } = siteConfig;
   const g = legal.grievanceOfficer;
   const onlineBooking = isOnlineBookingOn();
+  const payments = isPaymentsOn();
 
   return (
     <LegalPage
@@ -101,6 +103,13 @@ export default function PrivacyPage() {
               <li>
                 <strong>Transactional email</strong> (Resend) — sends your booking confirmation and change notices.
               </li>
+              {payments && (
+                <li>
+                  <strong>Payments</strong> — this website does not take card details or process payments. If you pay by UPI or
+                  bank transfer, the payment goes through your own UPI or banking app; we only store the amount, the payment
+                  method and any transaction reference you choose to give us, so the clinic can match your payment.
+                </li>
+              )}
             </>
           )}
           <li>
